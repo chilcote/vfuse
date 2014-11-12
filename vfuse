@@ -3,10 +3,10 @@
 This script takes a never-booted DMG and converts it to a VMware Fusion VM.
 
 Requirements:
-    VMware Fusion 7.x Professional  
-    OS X 10.9.5+ (compatible with 10.10)  
+    VMware Fusion 7.x Professional
+    OS X 10.9.5+ (compatible with 10.10)
     PyYAML module
-    A never-booted image (i.e. created with AutoDMG)  
+    A never-booted image (i.e. created with AutoDMG)
 '''
 ##############################################################################
 # Copyright 2014 Joseph Chilcote
@@ -39,7 +39,7 @@ from SystemConfiguration import *
 try:
     import yaml
 except ImportError as err:
-    print colored('%s; vfuse will not work with a template.' % err, 'red')
+    print colored('%s; vfuse will not work with a template.' % err, 'yellow')
 
 lio = version.StrictVersion('10.7.0')
 mln = version.StrictVersion('10.8.0')
@@ -133,22 +133,22 @@ def create_vmdk(output_dir, output_name, disk_id):
     # /Applications/VMware\ Fusion.app/Contents/Library/vmware-rawdiskCreator \
     #                       create /dev/disk2 fullDevice ./disk2-link lsilogic
     cmd = ['/Applications/VMware Fusion.app/Contents/Library/vmware-rawdiskCreator',
-                                    'create',
-                                    disk_id,
-                                    'fullDevice',
-                                    link,
-                                    'lsilogic']
+                                                                'create',
+                                                                disk_id,
+                                                                'fullDevice',
+                                                                link,
+                                                                'lsilogic']
     task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = task.communicate()
 
     # /Applications/VMware\ Fusion.app/Contents/Library/vmware-vdiskmanager -r \
     #                       ./disk2-link.vmdk -t 0 ./osx-disk.vmdk
     cmd = ['/Applications/VMware Fusion.app/Contents/Library/vmware-vdiskmanager',
-                                    '-r',
-                                    link + '.vmdk',
-                                    '-t',
-                                    '0',
-                                    vmdk]
+                                                                '-r',
+                                                                link + '.vmdk',
+                                                                '-t',
+                                                                '0',
+                                                                vmdk]
     task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = task.communicate()
 
