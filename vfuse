@@ -42,7 +42,7 @@ except ImportError as err:
 
 lio = version.StrictVersion('10.7.0')
 mln = version.StrictVersion('10.8.0')
-mav = version.StrictVersion('10.9.5')
+mav = version.StrictVersion('10.9.0')
 yos = version.StrictVersion('10.10.0')
 
 def colored(text, color=None):
