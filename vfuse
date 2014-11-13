@@ -5,7 +5,6 @@ This script takes a never-booted DMG and converts it to a VMware Fusion VM.
 Requirements:
     VMware Fusion 7.x Professional
     OS X 10.9.5+ (compatible with 10.10)
-    PyYAML module
     A never-booted image (i.e. created with AutoDMG)
 '''
 ##############################################################################
@@ -32,12 +31,9 @@ import urllib2
 import tempfile
 import shutil
 import time
+import json
 import argparse
 from SystemConfiguration import *
-try:
-    import yaml
-except ImportError as err:
-    print colored('%s; vfuse will not work with a template.' % err, 'yellow')
 
 def colored(text, color=None):
     if not os.getenv('ANSI_COLORS_DISABLED'):
@@ -62,7 +58,7 @@ def import_template(template):
     '''Imports user-defined template'''
     try:
         with open(template) as f:
-            d = yaml.safe_load(f)
+            d = json.load(f)
     except NameError as err:
         print colored('%s; bailing script.' % err, 'red')
         sys.exit(1)

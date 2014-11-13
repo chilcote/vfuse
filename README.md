@@ -12,7 +12,6 @@ Requirements
 
 + VMware Fusion 7.x Professional  
 + OS X 10.9.5+ (compatible with 10.10)  
-+ PyYAML module
 + A never-booted image created with your [favorite](https://github.com/chilcote/stew) [image creation tool](https://github.com/magervalp/autodmg).  
 + I've only tested with 10.9.5 and 10.10. YMMV  
 
@@ -52,13 +51,15 @@ Alternatively, you can redirect the output directory, and/or give your VM a spec
 Templates
 ---------
 
-Templates are simple yaml files that allow for automation and version control.  The templating format is simple:  
+Templates are simple json files that allow for automation and version control.  The templating format is simple:  
 
-    ---
-    input: /path/to/dmg or http://path/to/dmg
-    output: /path/to/output/dir
-    name: custom-name
-    cache: False
+    {
+        "input": "/path/to/dmg",
+        "output": "/path/to/output/dir",
+        "name": "custom-name",
+        "cache": "False",
+        "hw_version": "11"
+    }
 
 If you are using an http resource for the source DMG and cache is `True`, vfuse will cache the DMG in ~/.vfuse/ and will consult that directory before downloading the dmg again.  
 

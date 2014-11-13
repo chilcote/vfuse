@@ -1,0 +1,7 @@
+{
+    "input": "/path/to/dmg",
+    "output": "/path/to/output/dir",
+    "name": "custom-name",
+    "cache": "False",
+    "hw_version": "11"
+}
