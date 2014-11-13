@@ -34,7 +34,6 @@ import shutil
 import time
 from distutils import version
 import argparse
-from termcolor import colored
 from SystemConfiguration import *
 try:
     import yaml
@@ -45,6 +44,25 @@ lio = version.StrictVersion('10.7.0')
 mln = version.StrictVersion('10.8.0')
 mav = version.StrictVersion('10.9.5')
 yos = version.StrictVersion('10.10.0')
+
+def colored(text, color=None):
+    if not os.getenv('ANSI_COLORS_DISABLED'):
+        fmt_str = '\033[%dm'
+        reset = '\033[0m'
+        colors = {
+            'grey': 30,
+            'gray': 30,
+            'red': 31,
+            'green': 32,
+            'yellow': 33,
+            'blue': 34,
+            'magenta': 35,
+            'cyan': 36,
+            'white': 37,
+        }
+        if color is not None:
+            text = fmt_str % (colors[color]) + text + reset
+    return text
 
 def import_template(template):
     '''Imports user-defined template'''
