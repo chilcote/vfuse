@@ -34,10 +34,6 @@ import shutil
 import time
 import argparse
 from SystemConfiguration import *
-try:
-    import yaml
-except ImportError as err:
-    print colored('%s; vfuse will not work with a template.' % err, 'yellow')
 
 def colored(text, color=None):
     if not os.getenv('ANSI_COLORS_DISABLED'):
@@ -57,6 +53,11 @@ def colored(text, color=None):
         if color is not None:
             text = fmt_str % (colors[color]) + text + reset
     return text
+
+try:
+    import yaml
+except ImportError as err:
+    print colored('%s; vfuse will not work with a template.' % err, 'yellow')
 
 def import_template(template):
     '''Imports user-defined template'''
