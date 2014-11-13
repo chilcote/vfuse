@@ -2,6 +2,6 @@
     "input": "/path/to/dmg",
     "output": "/path/to/output/dir",
     "name": "custom-name",
-    "cache": "False",
+    "cache": false,
     "hw_version": 11
 }
