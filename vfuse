@@ -328,6 +328,8 @@ def main():
         if not cached:
             print colored('Caching %s' % dmg_name, 'green')
             shutil.move(source_dmg, cache_dir)
+            if os.getuid() == 0:
+                set_perms(cache_dir)
     
 if __name__ == '__main__':
     main()
