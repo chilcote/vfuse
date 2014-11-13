@@ -54,6 +54,11 @@ def colored(text, color=None):
             text = fmt_str % (colors[color]) + text + reset
     return text
 
+try:
+    import yaml
+except ImportError as err:
+    print colored('%s; vfuse will not work with a template.' % err, 'yellow')
+
 def import_template(template):
     '''Imports user-defined template'''
     try:
