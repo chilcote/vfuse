@@ -3,5 +3,5 @@
     "output": "/path/to/output/dir",
     "name": "custom-name",
     "cache": "False",
-    "hw_version": "11"
+    "hw_version": 11
 }
