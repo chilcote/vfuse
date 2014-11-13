@@ -32,18 +32,12 @@ import urllib2
 import tempfile
 import shutil
 import time
-from distutils import version
 import argparse
 from SystemConfiguration import *
 try:
     import yaml
 except ImportError as err:
     print colored('%s; vfuse will not work with a template.' % err, 'yellow')
-
-lio = version.StrictVersion('10.7.0')
-mln = version.StrictVersion('10.8.0')
-mav = version.StrictVersion('10.9.0')
-yos = version.StrictVersion('10.10.0')
 
 def colored(text, color=None):
     if not os.getenv('ANSI_COLORS_DISABLED'):
@@ -181,14 +175,14 @@ def set_perms(path):
         for f in files:
             os.chown(os.path.join(path, f), int(uid), 20)
 
-def create_vmx(vmpath, output_name, guest_os):
+def create_vmx(vmpath, output_name, guest_os, hw_version):
     '''Generates a working VMX file'''
     vmx = os.path.join(vmpath, output_name + '.vmx')
     print colored('Populating VMX file', 'green')
     with open(vmx, 'w') as f:
         f.write('.encoding = "UTF-8"\n')
         f.write('config.version = "8"\n')
-        f.write('virtualHW.version = "11"\n')
+        f.write('virtualHW.version = "%d"\n' % hw_version)
         f.write('numvcpus = "2"\n')
         f.write('sata0.present = "TRUE"\n')
         f.write('memsize = "2048"\n')
@@ -255,6 +249,8 @@ def main():
     parser.add_argument('-i', '--input', help='/path/to/dmg')
     parser.add_argument('-o', '--output', help='/path/to/output/dir')
     parser.add_argument('-n', '--name', help='custom name')
+    parser.add_argument('-w', '--hw-version', help='VMware hardware version',
+                        type=int)
     parser.add_argument('-t', '--template', help='use a template')
     args = parser.parse_args()
 
@@ -271,6 +267,7 @@ def main():
     cached = False
     dmg_name = ''
     guest_os = ''
+    hw_version = 11
 
     if not args.input and not args.template:
         parser.print_help()
@@ -285,6 +282,9 @@ def main():
     if args.name:
         output_name = args.name
 
+    if args.hw_version:
+        hw_version = args.hw_version
+    
     if args.template:
         d = import_template(args.template)
         source_dmg = d['input']
@@ -300,25 +300,27 @@ def main():
         if not output_dir:
             output_dir = os.getcwd()
         output_name = d['name']
+        hw_version = d['hw_version']
 
     mount_point, disk_id = mount_dmg(source_dmg)
 
     os_vers = get_osvers(mount_point)
-    if lio <= os_vers < mln:
-        guest_os = 'darwin11-64'
-    elif mln <= os_vers < mav:
-        guest_os = 'darwin12-64'
-    elif mav <= os_vers < yos:
-        guest_os = 'darwin13-64'
-    elif yos <= os_vers:
-        guest_os = 'darwin14-64'
-    else:
+    os_rev = int(os_vers.split('.')[1])
+    if (os_rev < 7) or (os_rev > 10):
         print colored('This OS X version is not supported: %s' % os_vers, 'red')
         unmount_dmg(mount_point)
         sys.exit(1)
+    # 10.7 (darwin11-64) requires virtualHW.version 8
+    # 10.8 (darwin12-64) requires virtualHW.version 9
+    # 10.9 (darwin13-64) requires virtualHW.version 10
+    # 10.10 (darwin14-64) requires virtualHW.version 11
+    if os_rev + 1 > hw_version:
+        print colored('VMware hardware version %d does not officially ' \
+                      'support 10.%d' % (hw_version, os_rev), 'yellow')
+    guest_os = 'darwin%d-64' % (hw_version + 3)
 
     vmpath = create_vmdk(output_dir, output_name, disk_id)
-    vmx = create_vmx(vmpath, output_name, guest_os)
+    vmx = create_vmx(vmpath, output_name, guest_os, hw_version)
     unmount_dmg(disk_id)
     if os.getuid() == 0:
         set_perms(vmpath)
