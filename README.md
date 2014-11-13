@@ -18,7 +18,8 @@ Requirements
 Usage
 -----
 
-    usage: vfuse [-h] [-i INPUT] [-o OUTPUT] [-n NAME] [-t TEMPLATE]
+    usage: vfuse [-h] [-i INPUT] [-o OUTPUT] [-n NAME] [-w HW_VERSION]
+                 [-t TEMPLATE]
 
     optional arguments:
       -h, --help            show this help message and exit
@@ -27,6 +28,8 @@ Usage
       -o OUTPUT, --output OUTPUT
                             /path/to/output/dir
       -n NAME, --name NAME  custom name
+      -w HW_VERSION, --hw-version HW_VERSION
+                            VMware hardware version
       -t TEMPLATE, --template TEMPLATE
                             use a template
 
@@ -47,6 +50,10 @@ Alternatively, you can redirect the output directory, and/or give your VM a spec
 
     sudo ./vfuse -i ~/Downloads/OSX10.9.5_13F34.dmg -o ~/vmtesting -n osx-mav
 
+To use a custom `virtualHW.version` setting, i.e. for use with ESXi, use the `-w` argument
+
+    sudo ./vfuse -i ~/Downloads/OSX10.9.5_13F34.dmg -o ~/vmtesting -n osx-mav -w 10
+
 
 Templates
 ---------
@@ -57,11 +64,11 @@ Templates are simple json files that allow for automation and version control.  
         "input": "/path/to/dmg",
         "output": "/path/to/output/dir",
         "name": "custom-name",
-        "cache": "False",
-        "hw_version": "11"
+        "cache": false,
+        "hw_version": 11
     }
 
-If you are using an http resource for the source DMG and cache is `True`, vfuse will cache the DMG in ~/.vfuse/ and will consult that directory before downloading the dmg again.  
+If you are using an http resource for the source DMG and cache is `true`, vfuse will cache the DMG in ~/.vfuse/ and will consult that directory before downloading the dmg again.  
 
 
 License
