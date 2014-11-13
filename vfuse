@@ -296,7 +296,6 @@ def main():
         if not output_dir:
             output_dir = os.getcwd()
         output_name = d['name']
-        # print isinstance(d['hw_version'], int)
         hw_version = d['hw_version'] if isinstance(d['hw_version'], 
                                                     int) else int(11)
 
