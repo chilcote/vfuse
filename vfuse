@@ -300,7 +300,9 @@ def main():
         if not output_dir:
             output_dir = os.getcwd()
         output_name = d['name']
-        hw_version = d['hw_version']
+        # print isinstance(d['hw_version'], int)
+        hw_version = d['hw_version'] if isinstance(d['hw_version'], 
+                                                    int) else int(11)
 
     mount_point, disk_id = mount_dmg(source_dmg)
 
