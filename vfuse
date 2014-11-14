@@ -222,23 +222,6 @@ def create_vmx(vmpath, output_name, guest_os, hw_version):
         f.write('floppy0.present = "FALSE"')
     return vmx
 
-def launch_vm(vmx, vmx_linked, output_name):
-    '''Launches a linked clone of the VM'''
-    print colored('Launching linked clone of %s' % output_name, 'green')
-    cmd = ['/Applications/VMware Fusion.app/Contents/Library/vmrun',
-                                    'clone', vmx, vmx_linked, 'linked',
-                                    '-cloneName=%s' % output_name + '_linked']
-    task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    out, err = task.communicate()
-    if err:
-        print colored('ERROR: %s' % err, 'red')
-        sys.exit(1)
-
-    cmd = ['/Applications/VMware Fusion.app/Contents/Library/vmrun',
-                                    'start', vmx_linked]
-    task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    out, err = task.communicate()
-
 def main():
     '''Main method'''
     parser = argparse.ArgumentParser()
