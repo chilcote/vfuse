@@ -233,7 +233,7 @@ def main():
     parser.add_argument('-n', '--name', help='custom name')
     parser.add_argument('-w', '--hw-version', help='VMware hardware version',
                         type=int)
-    parser.add_argument('-m', '--mem_size', help='Memory Size', type=int)
+    parser.add_argument('-m', '--mem-size', help='Memory Size', type=int)
     parser.add_argument('-t', '--template', help='use a template')
     args = parser.parse_args()
 
