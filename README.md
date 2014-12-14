@@ -30,6 +30,8 @@ Usage
       -n NAME, --name NAME  custom name
       -w HW_VERSION, --hw-version HW_VERSION
                             VMware hardware version
+      -m MEM_SIZE, --mem-size MEM_SIZE
+                            Memory Size in MB
       -t TEMPLATE, --template TEMPLATE
                             use a template
 
