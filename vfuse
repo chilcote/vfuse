@@ -174,7 +174,7 @@ def set_perms(path):
         for f in files:
             os.chown(os.path.join(path, f), int(uid), 20)
 
-def create_vmx(vmpath, output_name, guest_os, hw_version):
+def create_vmx(vmpath, output_name, guest_os, hw_version, mem_size):
     '''Generates a working VMX file'''
     vmx = os.path.join(vmpath, output_name + '.vmx')
     print colored('Populating VMX file', 'green')
@@ -184,7 +184,7 @@ def create_vmx(vmpath, output_name, guest_os, hw_version):
         f.write('virtualHW.version = "%d"\n' % hw_version)
         f.write('numvcpus = "2"\n')
         f.write('sata0.present = "TRUE"\n')
-        f.write('memsize = "2048"\n')
+        f.write('memsize = "%d"\n' % mem_size)
         f.write('sata0:0.present = "TRUE"\n')
         f.write('sata0:0.fileName = "%s.vmdk"\n' % output_name)
         f.write('sata0:1.present = "TRUE"\n')
@@ -233,6 +233,7 @@ def main():
     parser.add_argument('-n', '--name', help='custom name')
     parser.add_argument('-w', '--hw-version', help='VMware hardware version',
                         type=int)
+    parser.add_argument('-m', '--mem-size', help='Memory Size in MB', type=int)
     parser.add_argument('-t', '--template', help='use a template')
     args = parser.parse_args()
 
@@ -250,6 +251,7 @@ def main():
     dmg_name = ''
     guest_os = ''
     hw_version = 11
+    mem_size = 2048
 
     if not args.input and not args.template:
         parser.print_help()
@@ -267,6 +269,9 @@ def main():
     if args.hw_version:
         hw_version = args.hw_version
     
+    if args.mem_size:
+        mem_size = args.mem_size
+        
     if args.template:
         d = import_template(args.template)
         source_dmg = d['input']
@@ -284,6 +289,8 @@ def main():
         output_name = d['name']
         hw_version = d['hw_version'] if isinstance(d['hw_version'], 
                                                     int) else int(11)
+        mem_size = d['mem_size'] if isinstance(d['mem_size'],
+                                                     int) else int(2048)
 
     mount_point, disk_id = mount_dmg(source_dmg)
 
@@ -303,7 +310,7 @@ def main():
     guest_os = 'darwin%d-64' % (hw_version + 3)
 
     vmpath = create_vmdk(output_dir, output_name, disk_id)
-    vmx = create_vmx(vmpath, output_name, guest_os, hw_version)
+    vmx = create_vmx(vmpath, output_name, guest_os, hw_version, mem_size)
     unmount_dmg(disk_id)
     if os.getuid() == 0:
         set_perms(vmpath)
