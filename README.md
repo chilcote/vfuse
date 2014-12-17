@@ -67,7 +67,8 @@ Templates are simple json files that allow for automation and version control.  
         "output": "/path/to/output/dir",
         "name": "custom-name",
         "cache": false,
-        "hw_version": 11
+        "hw_version": 11,
+        "mem_size": 2048
     }
 
 If you are using an http resource for the source DMG and cache is `true`, vfuse will cache the DMG in ~/.vfuse/ and will consult that directory before downloading the dmg again.  
