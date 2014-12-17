@@ -97,12 +97,22 @@ def get_source_dmg(url, dmg, cache, source_dmg=None, downloaded=False,
 def mount_dmg(dmg):
     '''Mounts base DMG'''
     print colored('Mounting %s' % dmg, 'green')
+    d = {}
     try:
         output = subprocess.check_output(['/usr/bin/hdiutil', 'attach',
                                     '-nobrowse', '-noverify', '-noautoopen',
-                                    dmg])
-        mount_point = output.split('\n')[-3].split('\t')[-1].strip()
-        disk_id = output.split('\n')[0].split('\t')[0].strip()
+                                    dmg, '-plist'])
+        d = plistlib.readPlistFromString(output)
+        for i in d['system-entities']:
+            if 'mount-point' in str(i):
+                mount_point = i['mount-point']
+            if 'GUID_partition_scheme' in str(i):
+                disk_id = i['dev-entry']
+        # for line in output.splitlines():
+        #     if 'Apple_HFS' in line:
+        #         mount_point = line.split('\t')[-1].strip()
+        # mount_point = output.split('\n')[-3].split('\t')[-1].strip()
+        # disk_id = output.split('\n')[0].split('\t')[0].strip()
         return mount_point, disk_id
     except subprocess.CalledProcessError as err:
         print colored(err.cmd[-1], 'red')
