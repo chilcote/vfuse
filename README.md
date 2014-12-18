@@ -74,6 +74,11 @@ Templates are simple json files that allow for automation and version control.  
 If you are using an http resource for the source DMG and cache is `true`, vfuse will cache the DMG in ~/.vfuse/ and will consult that directory before downloading the dmg again.  
 
 
+Caveats
+-------
+
+`vfuse` is meant to be used with never-booted disk images created, for example, by [AutoDMG](https://github.com/magervalp/autodmg). That said, you should be able to use `vfuse` with a dmg created with Disk Utility. Be aware, however, that testing has shown that it is best if you use the "Disk Image from Folder" method rather than "Disk Image from (Select a Device)" in Disk Utility, as the latter may result in errors when converting the disk to a vmdk.  
+
 License
 -------
 
