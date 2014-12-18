@@ -108,11 +108,6 @@ def mount_dmg(dmg):
                 mount_point = i['mount-point']
             if 'GUID_partition_scheme' in str(i):
                 disk_id = i['dev-entry']
-        # for line in output.splitlines():
-        #     if 'Apple_HFS' in line:
-        #         mount_point = line.split('\t')[-1].strip()
-        # mount_point = output.split('\n')[-3].split('\t')[-1].strip()
-        # disk_id = output.split('\n')[0].split('\t')[0].strip()
         return mount_point, disk_id
     except subprocess.CalledProcessError as err:
         print colored(err.cmd[-1], 'red')
