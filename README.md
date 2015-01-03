@@ -56,6 +56,10 @@ To use a custom `virtualHW.version` setting, i.e. for use with ESXi, use the `-w
 
     sudo ./vfuse -i ~/Downloads/OSX10.9.5_13F34.dmg -o ~/vmtesting -n osx-mav -w 10
 
+To create a pre-allocated ESX-type virtual disk, use the `-p` argument
+
+    sudo ./vfuse -i ~/Downloads/OSX10.9.5_13F34.dmg -o ~/vmtesting -n osx-mav -p
+
 
 Templates
 ---------
@@ -68,11 +72,23 @@ Templates are simple json files that allow for automation and version control.  
         "name": "custom-name",
         "cache": false,
         "hw_version": 11,
-        "mem_size": 2048
+        "mem_size": 2048,
+        "disk_type": 0
     }
 
 If you are using an http resource for the source DMG and cache is `true`, vfuse will cache the DMG in ~/.vfuse/ and will consult that directory before downloading the dmg again.  
 
+`disk_type` is in reference to the output formats supported by VMware. Type `0` is the default, and will result in a growable virtual disk. Using the `-p` or `--pre-allocated` argument changes `disk_type` to type `4` resulting in a preallocated ESX-type virtual disk, so one could simply put `4` in a template to achieve the same result  
+
+Disk type options are as follows:
+
+    0: single growable virtual disk
+    1: growable virtual disk split in 2GB files
+    2: preallocated virtual disk
+    3: preallocated virtual disk split in 2GB files
+    4: preallocated ESX-type virtual disk
+    5: compressed disk optimized for streaming
+    6: thin provisioned virtual disk - ESX 3.x and above
 
 Caveats
 -------

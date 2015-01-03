@@ -140,7 +140,7 @@ def unmount_dmg(disk_id):
     if err:
         print colored('Could not detach:\t%s' % disk_id, 'red')
 
-def create_vmdk(output_dir, output_name, disk_id):
+def create_vmdk(output_dir, output_name, disk_id, disk_type):
     '''Converts Base OS DMG to VMDK'''
     vmpath = os.path.join(output_dir, output_name + '.vmwarevm')
     link = os.path.join(vmpath, os.path.basename(disk_id) + '-link')
@@ -174,7 +174,7 @@ def create_vmdk(output_dir, output_name, disk_id):
                                                                 '-r',
                                                                 link + '.vmdk',
                                                                 '-t',
-                                                                '0',
+                                                                str(disk_type),
                                                                 vmdk]
     task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = task.communicate()
@@ -249,8 +249,11 @@ def main():
     parser.add_argument('-n', '--name', help='custom name')
     parser.add_argument('-w', '--hw-version', help='VMware hardware version',
                         type=int)
-    parser.add_argument('-m', '--mem-size', help='Memory Size in MB', type=int)
+    parser.add_argument('-m', '--mem-size', help='Memory Size in MB',
+                        type=int)
     parser.add_argument('-t', '--template', help='use a template')
+    parser.add_argument('-p', '--pre-allocated', help='for use with esx',
+                        action='store_true')
     args = parser.parse_args()
 
     if os.getuid() != 0:
@@ -268,6 +271,7 @@ def main():
     guest_os = ''
     hw_version = 11
     mem_size = 2048
+    disk_type = 0
 
     if not args.input and not args.template:
         parser.print_help()
@@ -287,6 +291,9 @@ def main():
     
     if args.mem_size:
         mem_size = args.mem_size
+
+    if args.pre_allocated:
+        disk_type = 4
         
     if args.template:
         d = import_template(args.template)
@@ -306,7 +313,9 @@ def main():
         hw_version = d['hw_version'] if isinstance(d['hw_version'], 
                                                     int) else int(11)
         mem_size = d['mem_size'] if isinstance(d['mem_size'],
-                                                     int) else int(2048)
+                                                    int) else int(2048)
+        disk_type = d['disk_type'] if isinstance(d['disk_type'],
+                                                    int) else int(0)
 
     mount_point, disk_id = mount_dmg(source_dmg)
 
@@ -325,7 +334,7 @@ def main():
                       'support 10.%d' % (hw_version, os_rev), 'yellow')
     guest_os = 'darwin%d-64' % (hw_version + 3)
 
-    vmpath = create_vmdk(output_dir, output_name, disk_id)
+    vmpath = create_vmdk(output_dir, output_name, disk_id, disk_type)
     vmx = create_vmx(vmpath, output_name, guest_os, hw_version, mem_size)
     unmount_dmg(disk_id)
     if os.getuid() == 0:

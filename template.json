@@ -4,5 +4,6 @@
     "name": "custom-name",
     "cache": false,
     "hw_version": 11,
-    "mem_size": 2048
+    "mem_size": 2048,
+    "disk_type": 0
 }
