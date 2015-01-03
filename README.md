@@ -19,7 +19,7 @@ Usage
 -----
 
     usage: vfuse [-h] [-i INPUT] [-o OUTPUT] [-n NAME] [-w HW_VERSION]
-                 [-t TEMPLATE]
+                 [-m MEM_SIZE] [-t TEMPLATE] [-p]
 
     optional arguments:
       -h, --help            show this help message and exit
@@ -34,6 +34,7 @@ Usage
                             Memory Size in MB
       -t TEMPLATE, --template TEMPLATE
                             use a template
+      -p, --pre-allocated   for use with esx
 
 Creating a VM
 -------------
