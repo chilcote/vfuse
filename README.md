@@ -13,13 +13,13 @@ Requirements
 + VMware Fusion 7.x Professional  
 + OS X 10.9.5+ (compatible with 10.10)  
 + A never-booted image created with your [favorite](https://github.com/chilcote/stew) [image creation tool](https://github.com/magervalp/autodmg).  
-+ I've only tested with 10.9.5 and 10.10. YMMV  
++ [Packer](https://packer.io) 0.7.2 (or above) for building a vagrant box.
 
 Usage
 -----
 
     usage: vfuse [-h] [-i INPUT] [-o OUTPUT] [-n NAME] [-w HW_VERSION]
-                 [-m MEM_SIZE] [-t TEMPLATE] [-p]
+                 [-m MEM_SIZE] [-t TEMPLATE] [-e] [-p PACKER]
 
     optional arguments:
       -h, --help            show this help message and exit
@@ -27,14 +27,16 @@ Usage
                             /path/to/dmg
       -o OUTPUT, --output OUTPUT
                             /path/to/output/dir
-      -n NAME, --name NAME  custom name
+      -n NAME, --name NAME  Use a custom name
       -w HW_VERSION, --hw-version HW_VERSION
                             VMware hardware version
       -m MEM_SIZE, --mem-size MEM_SIZE
                             Memory Size in MB
       -t TEMPLATE, --template TEMPLATE
-                            use a template
-      -p, --pre-allocated   for use with esx
+                            Use a template
+      -e, --esx             Create pre-allocated ESX-type VMDK
+      -p PACKER, --packer PACKER
+                            Populate a packer template
 
 Creating a VM
 -------------
@@ -57,9 +59,9 @@ To use a custom `virtualHW.version` setting, i.e. for use with ESXi, use the `-w
 
     sudo ./vfuse -i ~/Downloads/OSX10.9.5_13F34.dmg -o ~/vmtesting -n osx-mav -w 10
 
-To create a pre-allocated ESX-type virtual disk, use the `-p` argument
+To create a pre-allocated ESX-type virtual disk, use the `-e` argument
 
-    sudo ./vfuse -i ~/Downloads/OSX10.9.5_13F34.dmg -o ~/vmtesting -n osx-mav -p
+    sudo ./vfuse -i ~/Downloads/OSX10.9.5_13F34.dmg -o ~/vmtesting -n osx-mav -e
 
 
 Templates
@@ -74,12 +76,13 @@ Templates are simple json files that allow for automation and version control.  
         "cache": false,
         "hw_version": 11,
         "mem_size": 2048,
-        "disk_type": 0
+        "disk_type": 0,
+        "packer_template": "packer-template.json"
     }
 
 If you are using an http resource for the source DMG and cache is `true`, vfuse will cache the DMG in ~/.vfuse/ and will consult that directory before downloading the dmg again.  
 
-`disk_type` is in reference to the output formats supported by VMware. Type `0` is the default, and will result in a growable virtual disk. Using the `-p` or `--pre-allocated` argument changes `disk_type` to type `4` resulting in a preallocated ESX-type virtual disk, so one could simply put `4` in a template to achieve the same result  
+`disk_type` is in reference to the output formats supported by VMware. Type `0` is the default, and will result in a growable virtual disk. Using the `-e` or `--esx` argument changes `disk_type` to type `4` resulting in a preallocated ESX-type virtual disk, so one could simply put `4` in a template to achieve the same result  
 
 Disk type options are as follows:
 
@@ -90,6 +93,19 @@ Disk type options are as follows:
     4: preallocated ESX-type virtual disk
     5: compressed disk optimized for streaming
     6: thin provisioned virtual disk - ESX 3.x and above
+
+Packer
+------
+
+`packer-template.json` is a stock template which can be used with [packer](https://packer.io) to create a [vagrant box](https://www.vagrantup.com) using the `vagrant-vmx` builder. To utilize a packer template, pass the `-p` or `--packer` argument with the path to to your template, or utilize a template file (see above). `vfuse` will update the template with the `output_path` of your vmx file. If the packer template file passed to the script does not exist, then `vfuse` will create a generic template file with the same name in the current working directory.  
+
+    sudo ./vfuse -i ~/Downloads/OSX10.9.5_13F34.dmg -p packer-template.json
+
+Build your VM and updated packer template, then create your vagrant box with `packer`.
+
+    /usr/local/bin/packer/packer build ./packer-template.json
+
+The stock `packer-template.json` file assumes that your base DMG image contains a user (i.e. `vagrant`) with ssh access and password-less sudo rights. See the [vagrant docs](https://docs.vagrantup.com/v2/boxes/base.html) for more info.
 
 Caveats
 -------

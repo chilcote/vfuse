@@ -5,5 +5,6 @@
     "cache": false,
     "hw_version": 11,
     "mem_size": 2048,
-    "disk_type": 0
+    "disk_type": 0,
+    "packer_template": "packer-template.json"
 }

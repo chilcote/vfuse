@@ -1,0 +1,18 @@
+{
+    "builders": [
+        {
+            "type": "vmware-vmx",
+            "source_path": "",
+            "ssh_username": "vagrant",
+            "ssh_password": "vagrant",
+            "ssh_port": 22,
+            "ssh_wait_timeout": "10000s",
+            "tools_upload_flavor": "darwin",
+            "shutdown_command": "sudo shutdown -h now"
+        }
+    ],
+    "min_packer_version": "0.7.2",
+    "post-processors": [
+        "vagrant"
+    ]
+}

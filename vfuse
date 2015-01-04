@@ -36,6 +36,7 @@ import shutil
 import time
 import json
 import argparse
+from collections import OrderedDict
 from SystemConfiguration import *
 
 def colored(text, color=None):
@@ -241,19 +242,53 @@ def create_vmx(vmpath, output_name, guest_os, hw_version, mem_size):
         f.write('floppy0.present = "FALSE"')
     return vmx
 
+def generic_packer_template():
+    d = {
+        'builders': [
+            {
+                'type': 'vmware-vmx',
+                'source_path': '',
+                'ssh_username': 'vagrant',
+                'ssh_password': 'vagrant',
+                'ssh_port': '22',
+                'ssh_wait_timeout': '10000s',
+                'tools_upload_flavor': 'darwin',
+                'shutdown_command': 'sudo shutdown -h now'
+            }
+        ],
+        'min_packer_version': '0.7.2',
+        'post-processors': ['vagrant']
+    }
+    return OrderedDict(d)
+
+def populate_packer_template(path, template):
+    if not os.path.exists(template):
+        print colored('File not found; creating generic one: %s' % template,
+                            'yellow')
+        d = generic_packer_template()
+    else:
+        with open(template, 'r') as f:
+            d = json.load(f, object_pairs_hook=OrderedDict)
+    d['builders'][0]['source_path'] = path
+    with open(template, 'w') as f:
+        json.dump(d, f, indent=4, separators=(',', ': '))
+    set_perms(template)
+
 def main():
     '''Main method'''
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', help='/path/to/dmg')
     parser.add_argument('-o', '--output', help='/path/to/output/dir')
-    parser.add_argument('-n', '--name', help='custom name')
+    parser.add_argument('-n', '--name', help='Use a custom name')
     parser.add_argument('-w', '--hw-version', help='VMware hardware version',
                         type=int)
     parser.add_argument('-m', '--mem-size', help='Memory Size in MB',
                         type=int)
-    parser.add_argument('-t', '--template', help='use a template')
-    parser.add_argument('-p', '--pre-allocated', help='for use with esx',
+    parser.add_argument('-t', '--template', help='Use a template')
+    parser.add_argument('-e', '--esx',
+                        help='Create pre-allocated ESX-type VMDK',
                         action='store_true')
+    parser.add_argument('-p', '--packer', help='Populate a packer template')
     args = parser.parse_args()
 
     if os.getuid() != 0:
@@ -272,6 +307,7 @@ def main():
     hw_version = 11
     mem_size = 2048
     disk_type = 0
+    packer_template = False
 
     if not args.input and not args.template:
         parser.print_help()
@@ -292,8 +328,11 @@ def main():
     if args.mem_size:
         mem_size = args.mem_size
 
-    if args.pre_allocated:
+    if args.esx:
         disk_type = 4
+
+    if args.packer:
+        packer_template = args.packer
         
     if args.template:
         d = import_template(args.template)
@@ -316,6 +355,7 @@ def main():
                                                     int) else int(2048)
         disk_type = d['disk_type'] if isinstance(d['disk_type'],
                                                     int) else int(0)
+        packer_template = d['packer_template']
 
     mount_point, disk_id = mount_dmg(source_dmg)
 
@@ -340,6 +380,10 @@ def main():
     if os.getuid() == 0:
         set_perms(vmpath)
     print colored('VMware Fusion VM created at %s' % vmpath, 'green')
+
+    if packer_template:
+        print colored('Generating packer template: %s' % packer_template, 'green')
+        populate_packer_template(vmpath, packer_template)
 
     if downloaded:
         if not cached:
