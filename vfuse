@@ -372,7 +372,7 @@ def main():
     if os_rev + 1 > hw_version:
         print colored('VMware hardware version %d does not officially ' \
                       'support 10.%d' % (hw_version, os_rev), 'yellow')
-    guest_os = 'darwin%d-64' % (hw_version + 3)
+    guest_os = 'darwin%d-64' % (os_rev + 4)
 
     vmpath = create_vmdk(output_dir, output_name, disk_id, disk_type)
     vmx = create_vmx(vmpath, output_name, guest_os, hw_version, mem_size)
