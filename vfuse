@@ -346,9 +346,7 @@ def main():
             dmg_name = os.path.basename(source_dmg)
             (source_dmg, downloaded, cached) = get_source_dmg(source_dmg,
                                                 dmg_name, cache_dir)
-        output_dir = d['output']
-        if not output_dir:
-            output_dir = os.getcwd()
+        output_dir = os.path.expanduser(d['output']) if d['output'] else os.getcwd()
         output_name = d['name']
         hw_version = d['hw_version'] if isinstance(d['hw_version'], 
                                                     int) else int(11)
