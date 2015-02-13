@@ -78,6 +78,7 @@ Templates are simple json files that allow for automation and version control.  
         "mem_size": 2048,
         "disk_type": 0,
         "packer_template": "packer-template.json"
+        "bridged": false
     }
 
 If you are using an http resource for the source DMG and cache is `true`, vfuse will cache the DMG in ~/.vfuse/ and will consult that directory before downloading the dmg again.  

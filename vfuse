@@ -191,7 +191,7 @@ def set_perms(path):
         for f in files:
             os.chown(os.path.join(path, f), int(uid), 20)
 
-def create_vmx(vmpath, output_name, guest_os, hw_version, mem_size):
+def create_vmx(vmpath, output_name, guest_os, hw_version, mem_size, connection_type):
     '''Generates a working VMX file'''
     vmx = os.path.join(vmpath, output_name + '.vmx')
     print colored('Populating VMX file', 'green')
@@ -209,7 +209,7 @@ def create_vmx(vmpath, output_name, guest_os, hw_version, mem_size):
         f.write('sata0:1.deviceType = "cdrom-raw"\n')
         f.write('sata0:1.startConnected = "FALSE"\n')
         f.write('ethernet0.present = "TRUE"\n')
-        f.write('ethernet0.connectionType = "nat"\n')
+        f.write('ethernet0.connectionType = "%s"\n' % connection_type)
         f.write('ethernet0.virtualDev = "e1000e"\n')
         f.write('ethernet0.wakeOnPcktRcv = "FALSE"\n')
         f.write('ethernet0.addressType = "generated"\n')
@@ -309,6 +309,7 @@ def main():
     mem_size = 2048
     disk_type = 0
     packer_template = False
+    connection_type = 'nat'
 
     if not args.input and not args.template:
         parser.print_help()
@@ -355,6 +356,7 @@ def main():
         disk_type = d['disk_type'] if isinstance(d['disk_type'],
                                                     int) else int(0)
         packer_template = d['packer_template']
+        connection_type = 'bridged' if d['bridged'] == True else 'nat'
 
     mount_point, disk_id = mount_dmg(source_dmg)
 
@@ -374,7 +376,7 @@ def main():
     guest_os = 'darwin%d-64' % (os_rev + 4)
 
     vmpath = create_vmdk(output_dir, output_name, disk_id, disk_type)
-    vmx = create_vmx(vmpath, output_name, guest_os, hw_version, mem_size)
+    vmx = create_vmx(vmpath, output_name, guest_os, hw_version, mem_size, connection_type)
     unmount_dmg(disk_id)
     if os.getuid() == 0:
         set_perms(vmpath)
