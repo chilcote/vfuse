@@ -316,7 +316,7 @@ def main():
         sys.exit(1)
 
     if args.input:
-        source_dmg = args.input
+        source_dmg = os.path.abspath(args.input)
 
     if args.output:
         output_dir = os.path.abspath(args.output)
@@ -338,7 +338,7 @@ def main():
         
     if args.template:
         d = import_template(args.template)
-        source_dmg = d['input']
+        source_dmg = os.path.expanduser(d['input'])
         cache = d['cache']
         if 'http' in source_dmg and cache:
             cache_dir = os.path.join(os.getenv('HOME'), '.vfuse')
