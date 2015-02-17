@@ -8,7 +8,7 @@ Requirements:
     A never-booted image (i.e. created with AutoDMG)
 '''
 ##############################################################################
-# Copyright 2014 Joseph Chilcote
+# Copyright 2015 Joseph Chilcote
 # 
 #  Licensed under the Apache License, Version 2.0 (the "License"); you may not
 #  use this file except in compliance with the License. You may obtain a copy
@@ -24,7 +24,7 @@ Requirements:
 ##############################################################################
 
 __author__  = 'Joseph Chilcote (chilcote@gmail.com)'
-__version__ = '0.9.0'
+__version__ = '0.9.1'
 
 import os
 import sys
@@ -36,8 +36,13 @@ import shutil
 import time
 import json
 import argparse
+from random import randint
 from collections import OrderedDict
-from SystemConfiguration import *
+from SystemConfiguration import SCDynamicStoreCopyConsoleUser
+try:
+    from vserv import VMXMonitor
+except ImportError as err:
+    pass
 
 def colored(text, color=None):
     if not os.getenv('ANSI_COLORS_DISABLED'):
@@ -97,8 +102,11 @@ def get_source_dmg(url, dmg, cache, source_dmg=None, downloaded=False,
 
 def mount_dmg(dmg, disk_id = False):
     '''Mounts base DMG'''
-    print colored('Mounting %s' % dmg, 'green')
     d = {}
+    if not dmg:
+        print colored('No source DMG provided', 'red')
+        sys.exit(1)
+    print colored('Mounting %s' % dmg, 'green')
     try:
         output = subprocess.check_output(['/usr/bin/hdiutil', 'attach',
                                     '-nobrowse', '-noverify', '-noautoopen',
@@ -116,7 +124,7 @@ def mount_dmg(dmg, disk_id = False):
             disk_id = mountpoint_dev_entry
         return mount_point, disk_id
     except subprocess.CalledProcessError as err:
-        print colored(err.cmd[-1], 'red')
+        print colored('Cannot mount dmg: %s' % dmg, 'red')
         sys.exit(1)
 
 def get_osvers(mount_point):
@@ -184,7 +192,7 @@ def create_vmdk(output_dir, output_name, disk_id, disk_type):
     return vmpath
 
 def set_perms(path):
-    '''Sets the permissions of the output vmwarevm bundle'''
+    '''Sets the permissions of given path to local user'''
     uid = SCDynamicStoreCopyConsoleUser(None, None, None)[1]
     os.chown(path, int(uid), 20)
     for root, dirs, files in os.walk(path):
@@ -244,6 +252,7 @@ def create_vmx(vmpath, output_name, guest_os, hw_version, mem_size, connection_t
     return vmx
 
 def generic_packer_template():
+    '''Returns a baseline packer template'''
     d = {
         'builders': [
             {
@@ -263,6 +272,7 @@ def generic_packer_template():
     return OrderedDict(d)
 
 def populate_packer_template(path, template):
+    '''Creates a packer template file'''
     if not os.path.exists(template):
         print colored('File not found; creating generic one: %s' % template,
                             'yellow')
@@ -277,7 +287,7 @@ def populate_packer_template(path, template):
 
 def main():
     '''Main method'''
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='Create and monitor VM from source DMG.')
     parser.add_argument('-i', '--input', help='/path/to/dmg')
     parser.add_argument('-o', '--output', help='/path/to/output/dir')
     parser.add_argument('-n', '--name', help='Use a custom name')
@@ -290,9 +300,13 @@ def main():
                         help='Create pre-allocated ESX-type VMDK',
                         action='store_true')
     parser.add_argument('-p', '--packer', help='Populate a packer template')
+    parser.add_argument('--start', nargs='?', const=randint(1000, 9999),
+                        help='Start monitoring of VM')
+    parser.add_argument('--stop', help='Stop monitoring of VM')
+    parser.add_argument('--reset', help='Reset monitored VM')
     args = parser.parse_args()
 
-    if os.getuid() != 0:
+    if os.getuid() != 0 and not args.stop and not args.reset:
         print colored('If you don\'t want to be prompted in the GUI for an ' \
                         'admin password, run this script with sudo rights\n',
                         'yellow')
@@ -310,8 +324,11 @@ def main():
     disk_type = 0
     packer_template = False
     connection_type = 'nat'
+    monitor_vm = False
+    job_id = None
 
-    if not args.input and not args.template:
+    if not args.input and not args.template and not args.start \
+            and not args.stop and not args.reset:
         parser.print_help()
         sys.exit(1)
 
@@ -335,7 +352,56 @@ def main():
 
     if args.packer:
         packer_template = args.packer
-        
+
+    if args.start:
+        job_id = args.start
+        try:
+            monitor = VMXMonitor()
+        except NameError as err:
+            print colored(str(err), 'red')
+            print colored('Make sure vserv is installed.', 'red')
+            sys.exit(1)
+        monitor_vm = True
+
+    if args.stop:
+        job_id = args.stop
+        try:
+            monitor = VMXMonitor()
+        except NameError as err:
+            print colored(str(err), 'red')
+            print colored('Make sure vserv is installed.', 'red')
+            sys.exit(1)
+        vmx = monitor.job_to_vmx(job_id)
+        if not vmx:
+            print colored('Invalid Job ID.', 'red')
+            sys.exit(1)
+        monitor.set_stop(vmx)
+        if os.getuid() == 0:
+            set_perms(monitor.plist)
+        while True:
+            if not monitor.is_running(vmx):
+                break
+        print colored('Deleting: %s' % os.path.dirname(vmx), 'green')
+        monitor.delete_vm(vmx)
+        sys.exit(0)
+
+    if args.reset:
+        job_id = args.reset
+        try:
+            monitor = VMXMonitor()
+        except NameError as err:
+            print colored(str(err), 'red')
+            print colored('Make sure vserv is installed.', 'red')
+            sys.exit(1)
+        vmx = monitor.job_to_vmx(job_id)
+        if not vmx:
+            print colored('Invalid Job ID.', 'red')
+            sys.exit(1)
+        monitor.set_reset(vmx)
+        if os.getuid() == 0:
+            set_perms(monitor.plist)
+        sys.exit(0)
+
     if args.template:
         d = import_template(args.template)
         source_dmg = os.path.expanduser(d['input'])
@@ -380,11 +446,18 @@ def main():
     unmount_dmg(disk_id)
     if os.getuid() == 0:
         set_perms(vmpath)
-    print colored('VMware Fusion VM created at %s' % vmpath, 'green')
 
     if packer_template:
         print colored('Generating packer template: %s' % packer_template, 'green')
         populate_packer_template(vmpath, packer_template)
+
+    if monitor_vm:
+        monitor.set_start(str(vmx), str(job_id))
+        if os.getuid() == 0:
+            set_perms(monitor.plist)
+        print colored('Adding monitoring for %s' % vmx, 'green')
+    else:
+        print colored('VMware Fusion VM created at %s' % vmpath, 'green')
 
     if downloaded:
         if not cached:

@@ -1,25 +1,29 @@
 vfuse
 ====
 
-This script takes a never-booted DMG and converts it to a VMware Fusion VM.  
+This script takes a never-booted DMG and converts it to a VMware Fusion VM.
 
-The germ of this idea came about, as all good ideas, and germs, do: while drinking beer. Specifically, I was tossing back drinks and tossing around ideas with [Gilbert Wilson](https://twitter.com/boyonwheels), and he mentioned that he uses the VMware CLI tools to convert DMGs to VMDKs based on a [blog post](http://hazenet.dk/2013/07/17/creating-a-never-booted-os-x-template-in-vsphere-5-1/6/) he'd read.  Intrigued, I asked Gil to email me the specifics.  After seeing how potentially cool this was, I wrapped it up in this here terribly illegible, queasingly unpythonic script.  
+The germ of this idea came about, as all good ideas, and germs, do: while drinking beer. Specifically, I was tossing back drinks and tossing around ideas with [Gilbert Wilson](https://twitter.com/boyonwheels), and he mentioned that he uses the VMware CLI tools to convert DMGs to VMDKs based on a [blog post](http://hazenet.dk/2013/07/17/creating-a-never-booted-os-x-template-in-vsphere-5-1/6/) he'd read.  Intrigued, I asked Gil to email me the specifics.  After seeing how potentially cool this was, I wrapped it up in this here terribly illegible, queasingly unpythonic script.
 
-My thanks to [Rich Trouton](https://twitter.com/rtrouton) for testing this script for me and providing feedback. He is a saint among humans.  
+My thanks to [Rich Trouton](https://twitter.com/rtrouton) for testing this script for me and providing feedback. He is a saint among humans.
 
 Requirements
 ------------
 
-+ VMware Fusion 7.x Professional  
-+ OS X 10.9.5+ (compatible with 10.10)  
-+ A never-booted image created with your [favorite](https://github.com/chilcote/stew) [image creation tool](https://github.com/magervalp/autodmg).  
++ VMware Fusion 7.x Professional
++ OS X 10.9.5+ (compatible with 10.10)
++ A never-booted image created with your [favorite](https://github.com/chilcote/stew) [image creation tool](https://github.com/magervalp/autodmg).
 + [Packer](https://packer.io) 0.7.2 (or above) for building a vagrant box.
++ [vserv](https://github.com/chilcote/vserv) for monitoring virtual machines.
 
 Usage
 -----
 
     usage: vfuse [-h] [-i INPUT] [-o OUTPUT] [-n NAME] [-w HW_VERSION]
-                 [-m MEM_SIZE] [-t TEMPLATE] [-e] [-p PACKER]
+                 [-m MEM_SIZE] [-t TEMPLATE] [-e] [-p PACKER] [--start [START]]
+                 [--stop STOP] [--reset RESET]
+
+    Create and monitor VM from source DMG.
 
     optional arguments:
       -h, --help            show this help message and exit
@@ -37,6 +41,10 @@ Usage
       -e, --esx             Create pre-allocated ESX-type VMDK
       -p PACKER, --packer PACKER
                             Populate a packer template
+      --start [START]       Start monitoring of VM
+      --stop STOP           Stop monitoring of VM
+      --reset RESET         Reset monitored VM
+
 
 Creating a VM
 -------------
@@ -67,7 +75,7 @@ To create a pre-allocated ESX-type virtual disk, use the `-e` argument
 Templates
 ---------
 
-Templates are simple json files that allow for automation and version control.  The templating format is simple:  
+Templates are simple json files that allow for automation and version control.  The templating format is simple:
 
     {
         "input": "/path/to/dmg",
@@ -77,13 +85,13 @@ Templates are simple json files that allow for automation and version control.  
         "hw_version": 11,
         "mem_size": 2048,
         "disk_type": 0,
-        "packer_template": "packer-template.json"
         "bridged": false
+        "packer_template": "packer-template.json"
     }
 
-If you are using an http resource for the source DMG and cache is `true`, vfuse will cache the DMG in ~/.vfuse/ and will consult that directory before downloading the dmg again.  
+If you are using an http resource for the source DMG and cache is `true`, vfuse will cache the DMG in ~/.vfuse/ and will consult that directory before downloading the dmg again.
 
-`disk_type` is in reference to the output formats supported by VMware. Type `0` is the default, and will result in a growable virtual disk. Using the `-e` or `--esx` argument changes `disk_type` to type `4` resulting in a preallocated ESX-type virtual disk, so one could simply put `4` in a template to achieve the same result  
+`disk_type` is in reference to the output formats supported by VMware. Type `0` is the default, and will result in a growable virtual disk. Using the `-e` or `--esx` argument changes `disk_type` to type `4` resulting in a preallocated ESX-type virtual disk, so one could simply put `4` in a template to achieve the same result.
 
 Disk type options are as follows:
 
@@ -98,7 +106,7 @@ Disk type options are as follows:
 Packer
 ------
 
-`packer-template.json` is a stock template which can be used with [packer](https://packer.io) to create a [vagrant box](https://www.vagrantup.com) using the `vagrant-vmx` builder. To utilize a packer template, pass the `-p` or `--packer` argument with the path to to your template, or utilize a template file (see above). `vfuse` will update the template with the `output_path` of your vmx file. If the packer template file passed to the script does not exist, then `vfuse` will create a generic template file with the same name in the current working directory.  
+`packer-template.json` is a stock template which can be used with [packer](https://packer.io) to create a [vagrant box](https://www.vagrantup.com) using the `vagrant-vmx` builder. To utilize a packer template, pass the `-p` or `--packer` argument with the path to to your template, or utilize a template file (see above). `vfuse` will update the template with the `output_path` of your vmx file. If the packer template file passed to the script does not exist, then `vfuse` will create a generic template file with the same name in the current working directory.
 
     sudo ./vfuse -i ~/Downloads/OSX10.9.5_13F34.dmg -p packer-template.json
 
@@ -108,15 +116,35 @@ Build your VM and updated packer template, then create your vagrant box with `pa
 
 The stock `packer-template.json` file assumes that your base DMG image contains a user (i.e. `vagrant`) with ssh access and password-less sudo rights. See the [vagrant docs](https://docs.vagrantup.com/v2/boxes/base.html) for more info.
 
+VSERV
+-----
+
+[vserv](https://github.com/chilcote/vserv) is a companion script that can be run as a service, and which `vfuse` can utilize to automatically launch, remove, or reset virtual machines. This is useful for testing, but could also be used to spin up/tear down VMs as an on-demand service.
+
+To utilize `vserv`, both scripts will need to be installed in the same $PATH-accessible directory (i.e. /usr/local/bin/). `vfuse` loads the VMXMonitor class if necessary and writes changes to a plist file that `vserv` watches and acts upon.
+
+To start monitoring a VM, use the `--start job_id` argument with your `vfuse` call, where 'job_id' is an identifier of this job. If no job_id is given, one will be chosen randomly:
+
+    sudo ./vfuse -t template.json --start 1001
+
+To stop monitoring a VM, and delete the vmwarevm bundle, use the `--stop` argument:
+
+    sudo . --stop 1001
+
+To reset a stuck VM, use the `--reset` argument:
+
+    sudo . --reset 1001
+
+
 Caveats
 -------
 
-`vfuse` is meant to be used with never-booted disk images created, for example, by [AutoDMG](https://github.com/magervalp/autodmg). That said, you should be able to use `vfuse` with a dmg created with Disk Utility. Be aware, however, that testing has shown that it is best if you use the "Disk Image from Folder" method rather than "Disk Image from (Select a Device)" in Disk Utility, as the latter may result in errors when converting the disk to a vmdk.  
+`vfuse` is meant to be used with never-booted disk images created, for example, by [AutoDMG](https://github.com/magervalp/autodmg). That said, you should be able to use `vfuse` with a dmg created with Disk Utility. Be aware, however, that testing has shown that it is best if you use the "Disk Image from Folder" method rather than "Disk Image from (Select a Device)" in Disk Utility, as the latter may result in errors when converting the disk to a vmdk.
 
 License
 -------
 
-    Copyright 2014 Joseph Chilcote
+    Copyright 2015 Joseph Chilcote
     
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
