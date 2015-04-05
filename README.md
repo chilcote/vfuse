@@ -13,8 +13,8 @@ Requirements
 + VMware Fusion 7.x Professional
 + OS X 10.9.5+ (compatible with 10.10)
 + A never-booted image created with your [favorite](https://github.com/chilcote/stew) [image creation tool](https://github.com/magervalp/autodmg).
-+ [Packer](https://packer.io) 0.7.2 (or above) for building a vagrant box.
-+ [vserv](https://github.com/chilcote/vserv) for monitoring virtual machines.
++ (optional) [Packer](https://packer.io) 0.7.2 (or above) for building a vagrant box.
++ (optional) [vserv](https://github.com/chilcote/vserv) for monitoring virtual machines.
 
 Usage
 -----
