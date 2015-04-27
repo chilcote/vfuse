@@ -1,18 +1,43 @@
 {
-    "builders": [
-        {
-            "type": "vmware-vmx",
-            "source_path": "",
-            "ssh_username": "vagrant",
-            "ssh_password": "vagrant",
-            "ssh_port": 22,
-            "ssh_wait_timeout": "10000s",
-            "tools_upload_flavor": "darwin",
-            "shutdown_command": "sudo shutdown -h now"
-        }
-    ],
     "min_packer_version": "0.7.2",
     "post-processors": [
         "vagrant"
-    ]
+    ],
+    "builders": [
+        {
+            "shutdown_command": "sudo shutdown -h now",
+            "ssh_password": "vagrant",
+            "ssh_username": "vagrant",
+            "ssh_port": "22",
+            "source_path": "/path/to/vm",
+            "ssh_wait_timeout": "10000s",
+            "type": "vmware-vmx",
+            "tools_upload_flavor": "darwin"
+        }
+    ],
+    "provisioners": [
+        {
+            "execute_command": "chmod +x {{ .Path }}; sudo {{ .Vars }} {{ .Path }}",
+            "scripts": [
+                "./packer-scripts/vmware-tools.sh",
+                "./packer-scripts/xcode-cli-tools.sh",
+                "./packer-scripts/chef-omnibus.sh",
+                "./packer-scripts/puppet.sh",
+                "./packer-scripts/system-update.sh"
+            ],
+            "environment_vars": [
+                "INSTALL_VAGRANT_KEYS={{user `install_vagrant_keys`}}",
+                "USERNAME={{user `username`}}",
+                "PASSWORD={{user `password`}}",
+                "UPDATE_SYSTEM={{user `update_system`}}"
+            ],
+            "type": "shell"
+        }
+    ],
+    "variables": {
+        "username": "vagrant",
+        "password": "vagrant",
+        "install_vagrant_keys": true,
+        "update_system": true
+    }
 }
