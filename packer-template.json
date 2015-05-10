@@ -6,8 +6,8 @@
     "builders": [
         {
             "shutdown_command": "sudo shutdown -h now",
-            "ssh_password": "vagrant",
-            "ssh_username": "vagrant",
+            "ssh_password": "{{user `username`}}",
+            "ssh_username": "{{user `password`}}",
             "ssh_port": "22",
             "source_path": "/path/to/vm",
             "ssh_wait_timeout": "10000s",
@@ -26,10 +26,14 @@
                 "./packer-scripts/system-update.sh"
             ],
             "environment_vars": [
-                "INSTALL_VAGRANT_KEYS={{user `install_vagrant_keys`}}",
                 "USERNAME={{user `username`}}",
                 "PASSWORD={{user `password`}}",
-                "UPDATE_SYSTEM={{user `update_system`}}"
+                "INSTALL_VAGRANT_KEYS={{user `install_vagrant_keys`}}",
+                "UPDATE_SYSTEM={{user `update_system`}}",
+                "CHEF_VERSION={{user `chef_version`}}",
+                "PUPPET_VERSION={{user `puppet_version`}}",
+                "FACTER_VERSION={{user `facter_version`}}",
+                "HIERA_VERSION={{user `hiera_version`}}"
             ],
             "type": "shell"
         }
@@ -38,6 +42,10 @@
         "username": "vagrant",
         "password": "vagrant",
         "install_vagrant_keys": true,
-        "update_system": true
+        "update_system": true,
+        "chef_version": "latest",
+        "puppet_version": "latest",
+        "facter_version": "latest",
+        "hiera_version": "latest"
     }
 }
