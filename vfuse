@@ -428,7 +428,7 @@ def main():
 
     os_vers = get_osvers(mount_point)
     os_rev = int(os_vers.split('.')[1])
-    if (os_rev < 7) or (os_rev > 10):
+    if (os_rev < 7) or (os_rev > 11):
         print colored('This OS X version is not supported: %s' % os_vers, 'red')
         unmount_dmg(mount_point)
         sys.exit(1)
@@ -439,7 +439,10 @@ def main():
     if os_rev + 1 > hw_version:
         print colored('VMware hardware version %d does not officially ' \
                       'support 10.%d' % (hw_version, os_rev), 'yellow')
-    guest_os = 'darwin%d-64' % (os_rev + 4)
+    if os_rev == 11:
+        guest_os = 'darwin%d-64' % (os_rev + 3)
+    else:
+        guest_os = 'darwin%d-64' % (os_rev + 4)
 
     vmpath = create_vmdk(output_dir, output_name, disk_id, disk_type)
     vmx = create_vmx(vmpath, output_name, guest_os, hw_version, mem_size, connection_type)
