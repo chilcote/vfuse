@@ -41,8 +41,8 @@
     "variables": {
         "username": "vagrant",
         "password": "vagrant",
-        "install_vagrant_keys": true,
-        "update_system": true,
+        "install_vagrant_keys": "true",
+        "update_system": "true",
         "chef_version": "latest",
         "puppet_version": "latest",
         "facter_version": "latest",
