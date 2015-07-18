@@ -1,5 +1,4 @@
 {
-    "min_packer_version": "0.7.2",
     "post-processors": [
         "vagrant"
     ],
@@ -41,8 +40,8 @@
     "variables": {
         "username": "vagrant",
         "password": "vagrant",
-        "install_vagrant_keys": true,
-        "update_system": true,
+        "install_vagrant_keys": "true",
+        "update_system": "true",
         "chef_version": "latest",
         "puppet_version": "latest",
         "facter_version": "latest",
