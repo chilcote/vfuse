@@ -7,5 +7,6 @@
     "mem_size": 2048,
     "disk_type": 0,
     "bridged": false,
+    "enable3d": false,
     "packer_template": "packer-template.json"
 }

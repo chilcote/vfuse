@@ -199,7 +199,7 @@ def set_perms(path):
         for f in files:
             os.chown(os.path.join(path, f), int(uid), 20)
 
-def create_vmx(vmpath, output_name, guest_os, hw_version, mem_size, connection_type):
+def create_vmx(vmpath, output_name, guest_os, hw_version, mem_size, connection_type, enable3d):
     '''Generates a working VMX file'''
     vmx = os.path.join(vmpath, output_name + '.vmx')
     print colored('Populating VMX file', 'green')
@@ -248,7 +248,8 @@ def create_vmx(vmpath, output_name, guest_os, hw_version, mem_size, connection_t
         f.write('nvram = "%s.nvram"\n' % output_name)
         f.write('keyboardAndMouseProfile = "macProfile"\n')
         f.write('floppy0.present = "FALSE"\n')
-        f.write('msg.autoanswer = "TRUE"')
+        f.write('msg.autoanswer = "TRUE"\n')
+        f.write('mks.enable3d = "%s"' % enable3d)
     return vmx
 
 def generic_packer_template():
@@ -328,6 +329,7 @@ def main():
     connection_type = 'nat'
     monitor_vm = False
     job_id = None
+    enable3d = 'FALSE'
 
     if not args.input and not args.template and not args.start \
             and not args.stop and not args.reset:
@@ -425,6 +427,7 @@ def main():
                                                     int) else int(0)
         packer_template = d['packer_template']
         connection_type = 'bridged' if d['bridged'] == True else 'nat'
+        enable3d = 'TRUE' if d['enable3d'] == True else 'FALSE'
 
     mount_point, disk_id = mount_dmg(source_dmg)
 
@@ -447,7 +450,7 @@ def main():
         guest_os = 'darwin%d-64' % (os_rev + 4)
 
     vmpath = create_vmdk(output_dir, output_name, disk_id, disk_type)
-    vmx = create_vmx(vmpath, output_name, guest_os, hw_version, mem_size, connection_type)
+    vmx = create_vmx(vmpath, output_name, guest_os, hw_version, mem_size, connection_type, enable3d)
     unmount_dmg(disk_id)
     if os.getuid() == 0:
         set_perms(vmpath)
