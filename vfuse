@@ -199,7 +199,8 @@ def set_perms(path):
         for f in files:
             os.chown(os.path.join(path, f), int(uid), 20)
 
-def create_vmx(vmpath, output_name, guest_os, hw_version, mem_size, connection_type, enable3d):
+def create_vmx(vmpath, output_name, guest_os, hw_version, mem_size,
+                connection_type, enable3d, vnc_port, vnc_passwd):
     '''Generates a working VMX file'''
     vmx = os.path.join(vmpath, output_name + '.vmx')
     print colored('Populating VMX file', 'green')
@@ -250,6 +251,10 @@ def create_vmx(vmpath, output_name, guest_os, hw_version, mem_size, connection_t
         f.write('floppy0.present = "FALSE"\n')
         f.write('msg.autoanswer = "TRUE"\n')
         f.write('mks.enable3d = "%s"' % enable3d)
+        if vnc_passwd:
+            f.write('\nremotedisplay.vnc.enabled = "TRUE"\n')
+            f.write('remotedisplay.vnc.port = "%s"\n' % vnc_port)
+            f.write('RemoteDisplay.vnc.key = "%s"' % vnc_passwd)
     return vmx
 
 def generic_packer_template():
@@ -330,6 +335,8 @@ def main():
     monitor_vm = False
     job_id = None
     enable3d = 'FALSE'
+    vnc_port = None
+    vnc_passwd = None
 
     if not args.input and not args.template and not args.start \
             and not args.stop and not args.reset:
@@ -428,6 +435,8 @@ def main():
         packer_template = d['packer_template']
         connection_type = 'bridged' if d['bridged'] == True else 'nat'
         enable3d = 'TRUE' if d['enable3d'] == True else 'FALSE'
+        vnc_port = int(d['vnc_port']) if d['vnc_port'] else int(5901)
+        vnc_passwd = d['vnc_passwd'] if d['vnc_passwd'] else None
 
     mount_point, disk_id = mount_dmg(source_dmg)
 
@@ -450,7 +459,8 @@ def main():
         guest_os = 'darwin%d-64' % (os_rev + 4)
 
     vmpath = create_vmdk(output_dir, output_name, disk_id, disk_type)
-    vmx = create_vmx(vmpath, output_name, guest_os, hw_version, mem_size, connection_type, enable3d)
+    vmx = create_vmx(vmpath, output_name, guest_os, hw_version, mem_size,
+                        connection_type, enable3d, vnc_port, vnc_passwd)
     unmount_dmg(disk_id)
     if os.getuid() == 0:
         set_perms(vmpath)
