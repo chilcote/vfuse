@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 '''
 This script takes a never-booted DMG and converts it to a VMware Fusion VM.
 
