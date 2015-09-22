@@ -344,7 +344,7 @@ def main():
     cached = False
     dmg_name = ''
     guest_os = ''
-    hw_version = 11
+    hw_version = 12
     mem_size = 2048
     disk_type = 0
     packer_template = False
@@ -444,7 +444,7 @@ def main():
         output_dir = os.path.expanduser(d['output']) if d['output'] else os.getcwd()
         output_name = d['name']
         hw_version = d['hw_version'] if isinstance(d['hw_version'], 
-                                                    int) else int(11)
+                                                    int) else int(12)
         mem_size = d['mem_size'] if isinstance(d['mem_size'],
                                                     int) else int(2048)
         disk_type = d['disk_type'] if isinstance(d['disk_type'],
