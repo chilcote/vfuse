@@ -443,6 +443,9 @@ def main():
                                                 dmg_name, cache_dir)
         output_dir = os.path.expanduser(d['output']) if d['output'] else os.getcwd()
         output_name = d['name']
+
+        # IF keys exist in the template, use those values.  Otherwise the
+        # defaults will be used
         if 'hw_version' in d:
             hw_version = int(d['hw_version'])
         if 'mem_size' in d:
