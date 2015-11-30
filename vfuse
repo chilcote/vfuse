@@ -445,7 +445,7 @@ def main():
         output_name = d['name']
 
         # If keys exist in the template, use those values.  Otherwise the
-        # defaults will be used
+        # defaults defined earlier will be used
         if 'hw_version' in d:
             hw_version = int(d['hw_version'])
         if 'mem_size' in d:
