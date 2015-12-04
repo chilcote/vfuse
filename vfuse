@@ -361,10 +361,10 @@ def main():
         sys.exit(1)
 
     if args.input:
-        source_dmg = os.path.abspath(args.input)
+        source_dmg = os.path.expanduser(args.input)
 
     if args.output:
-        output_dir = os.path.abspath(args.output)
+        output_dir = os.path.expanduser(args.output)
 
     if args.name:
         output_name = args.name
