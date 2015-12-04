@@ -443,17 +443,25 @@ def main():
                                                 dmg_name, cache_dir)
         output_dir = os.path.expanduser(d['output']) if d['output'] else os.getcwd()
         output_name = d['name']
-        hw_version = d['hw_version'] if isinstance(d['hw_version'], 
-                                                    int) else int(12)
-        mem_size = d['mem_size'] if isinstance(d['mem_size'],
-                                                    int) else int(2048)
-        disk_type = d['disk_type'] if isinstance(d['disk_type'],
-                                                    int) else int(0)
-        packer_template = d['packer_template']
-        connection_type = 'bridged' if d['bridged'] == True else 'nat'
-        enable3d = 'TRUE' if d['enable3d'] == True else 'FALSE'
-        vnc_port = int(d['vnc_port']) if d['vnc_port'] else int(5901)
-        vnc_passwd = d['vnc_passwd'] if d['vnc_passwd'] else None
+
+        # If keys exist in the template, use those values.  Otherwise the
+        # defaults defined earlier will be used
+        if 'hw_version' in d:
+            hw_version = int(d['hw_version'])
+        if 'mem_size' in d:
+            mem_size = int(d['mem_size'])
+        if 'disk_type' in d: 
+            disk_type = int(d['disk_type'])
+        if 'packer_template' in d:
+            packer_template = d['packer_template']
+        if 'bridged' in d:
+            connection_type = 'bridged' if d['bridged'] == True else 'nat'
+        if 'enable3d' in d:
+            enable3d = 'TRUE' if d['enable3d'] == True else 'FALSE'
+        if 'vnc_port' in d:
+            vnc_port = int(d['vnc_port'])
+        if 'vnc_passwd' in d:
+            vnc_passwd = d['vnc_passwd']
 
     mount_point, disk_id = mount_dmg(source_dmg)
 
