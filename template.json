@@ -7,6 +7,7 @@
     "mem_size": 2048,
     "disk_type": 0,
     "bridged": false,
+    "mac_address": "",
     "enable3d": false,
     "vnc_port": 5901,
     "vnc_passwd": "",
