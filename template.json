@@ -11,5 +11,6 @@
     "enable3d": false,
     "vnc_port": 5901,
     "vnc_passwd": "",
+    "hw_model": "",
     "packer_template": "packer-template.json"
 }

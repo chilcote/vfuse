@@ -216,8 +216,19 @@ def set_perms(path):
         for f in files:
             os.chown(os.path.join(path, f), int(uid), 20)
 
-def create_vmx(vmpath, output_name, guest_os, hw_version, mem_size,
-                connection_type, enable3d, vnc_port, vnc_passwd, mac_address):
+def create_vmx(
+                vmpath,
+                output_name,
+                guest_os,
+                hw_version,
+                mem_size,
+                connection_type,
+                enable3d,
+                vnc_port,
+                vnc_passwd,
+                mac_address,
+                hw_model
+            ):
     '''Generates a working VMX file'''
     vmx = os.path.join(vmpath, output_name + '.vmx')
     print colored('Populating VMX file', 'green')
@@ -273,9 +284,11 @@ def create_vmx(vmpath, output_name, guest_os, hw_version, mem_size,
             f.write('RemoteDisplay.vnc.key = "%s"' % vnc_passwd)
         if mac_address:
             f.write('\nethernet0.addressType = "static"\n')
-            f.write('ethernet0.address = %s' % mac_address)
+            f.write('ethernet0.address = "%s"' % mac_address)
         else:
             f.write('\nethernet0.addressType = "generated"')
+        if hw_model:
+            f.write('\nhw.model = "%s"' % hw_model)
     return vmx
 
 def generic_packer_template():
@@ -360,6 +373,7 @@ def main():
     vnc_passwd = None
     bridged = 'nat'
     mac_address = ''
+    hw_model = ''
 
     if not args.input and not args.template and not args.start \
             and not args.stop and not args.reset:
@@ -469,6 +483,8 @@ def main():
             vnc_port = int(d['vnc_port'])
         if d.get('vnc_passwd'):
             vnc_passwd = d['vnc_passwd']
+        if d.get('hw_model'):
+            hw_model = d['hw_model']
 
     mount_point, disk_id = mount_dmg(source_dmg)
 
@@ -504,7 +520,8 @@ def main():
                     enable3d,
                     vnc_port,
                     vnc_passwd,
-                    mac_address
+                    mac_address,
+                    hw_model
                 )
     unmount_dmg(disk_id)
     if os.getuid() == 0:
