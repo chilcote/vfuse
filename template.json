@@ -12,5 +12,6 @@
     "vnc_port": 5901,
     "vnc_passwd": "",
     "hw_model": "",
+    "serial_number": "",
     "packer_template": "packer-template.json"
 }

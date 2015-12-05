@@ -227,7 +227,9 @@ def create_vmx(
                 vnc_port,
                 vnc_passwd,
                 mac_address,
-                hw_model
+                hw_model,
+                serial_number,
+                serial_format
             ):
     '''Generates a working VMX file'''
     vmx = os.path.join(vmpath, output_name + '.vmx')
@@ -289,6 +291,10 @@ def create_vmx(
             f.write('\nethernet0.addressType = "generated"')
         if hw_model:
             f.write('\nhw.model = "%s"' % hw_model)
+        if serial_number:
+            f.write('\nserialNumber = "%s"' % serial_number)
+        if serial_format:
+            f.write('\nSMBIOS.use12CharSerialNumber = "TRUE"')
     return vmx
 
 def generic_packer_template():
@@ -374,6 +380,8 @@ def main():
     bridged = 'nat'
     mac_address = ''
     hw_model = ''
+    serial_number = ''
+    serial_format = False
 
     if not args.input and not args.template and not args.start \
             and not args.stop and not args.reset:
@@ -485,11 +493,15 @@ def main():
             vnc_passwd = d['vnc_passwd']
         if d.get('hw_model'):
             hw_model = d['hw_model']
+        if d.get('serial_number'):
+            serial_number = d['serial_number']
 
     mount_point, disk_id = mount_dmg(source_dmg)
 
     os_vers = get_osvers(mount_point)
     os_rev = int(os_vers.split('.')[1])
+    if os_rev <= 8:
+        serial_format = True
     if (os_rev < 7) or (os_rev > 12):
         print colored('This OS X version is not supported: %s' % os_vers, 'red')
         unmount_dmg(mount_point)
@@ -521,7 +533,9 @@ def main():
                     vnc_port,
                     vnc_passwd,
                     mac_address,
-                    hw_model
+                    hw_model,
+                    serial_number,
+                    serial_format
                 )
     unmount_dmg(disk_id)
     if os.getuid() == 0:
