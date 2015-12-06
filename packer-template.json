@@ -1,4 +1,5 @@
 {
+    "min_packer_version": "0.8.6",
     "post-processors": [
         "vagrant"
     ],

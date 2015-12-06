@@ -312,9 +312,7 @@ def generic_packer_template():
                 'shutdown_command': 'sudo shutdown -h now'
             }
         ],
-        # including this key crashes packer 0.8.1
-        # https://github.com/mitchellh/packer/issues/2385
-        # 'min_packer_version': '0.7.2',
+        'min_packer_version': '0.8.6',
         'post-processors': ['vagrant']
     }
     return OrderedDict(d)
