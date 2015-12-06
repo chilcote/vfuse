@@ -13,5 +13,6 @@
     "vnc_passwd": "",
     "hw_model": "",
     "serial_number": "",
+    "shared_folder": "/path/to/shared/folder",
     "packer_template": "packer-template.json"
 }
