@@ -459,20 +459,25 @@ def main():
         sys.exit(0)
 
     if args.template:
-        d = import_template(args.template)
-        source_dmg = os.path.expanduser(d['input'])
-        cache = d['cache']
-        if 'http' in source_dmg and cache:
-            cache_dir = os.path.join(os.getenv('HOME'), '.vfuse')
-            if not os.path.exists(cache_dir):
-                os.mkdir(cache_dir)
-            dmg_name = os.path.basename(source_dmg)
-            (source_dmg, downloaded, cached) = get_source_dmg(source_dmg,
-                                                dmg_name, cache_dir)
-        output_dir = os.path.expanduser(d['output']) if d['output'] else os.getcwd()
-        output_name = d['name']
-
         # Use template-defined keys, otherwise use defaults defined above.
+        d = import_template(args.template)
+        if not d.get('source_dmg'):
+            parser.print_help()
+            sys.exit(1)
+        else:
+            source_dmg = os.path.expanduser(d['source_dmg'])
+        if d.get('cache'):
+            cache = d['cache']
+            if 'http' in source_dmg and cache:
+                cache_dir = os.path.join(os.getenv('HOME'), '.vfuse')
+                if not os.path.exists(cache_dir):
+                    os.mkdir(cache_dir)
+                dmg_name = os.path.basename(source_dmg)
+                (source_dmg, downloaded, cached) = get_source_dmg(source_dmg, dmg_name, cache_dir)
+        if d.get('output_dir'):
+            output_dir = os.path.expanduser(d['output_dir'])
+        if d.get('output_name'):
+            output_name = d['output_name']
         if d.get('hw_version'):
             hw_version = int(d['hw_version'])
         if d.get('mem_size'):

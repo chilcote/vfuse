@@ -1,7 +1,7 @@
 {
-    "input": "/path/to/dmg",
-    "output": "/path/to/output/dir",
-    "name": "custom-name",
+    "source_dmg": "/path/to/dmg",
+    "output_dir": "/path/to/output/dir",
+    "output_name": "custom-name",
     "cache": false,
     "hw_version": 11,
     "mem_size": 2048,
