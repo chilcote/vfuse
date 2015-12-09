@@ -278,8 +278,11 @@ def create_vmx(
         f.write('nvram = "%s.nvram"\n' % output_name)
         f.write('keyboardAndMouseProfile = "macProfile"\n')
         f.write('floppy0.present = "FALSE"\n')
-        f.write('msg.autoanswer = "TRUE"\n')
-        f.write('mks.enable3d = "%s"' % enable3d)
+        f.write('msg.autoanswer = "TRUE"')
+        if enable3d:
+            f.write('\nmks.enable3d = "TRUE"')
+        else:
+            f.write('\nmks.enable3d = "FALSE"')
         if vnc_passwd:
             f.write('\nremotedisplay.vnc.enabled = "TRUE"\n')
             f.write('remotedisplay.vnc.port = "%s"\n' % vnc_port)
@@ -370,26 +373,26 @@ def main():
     source_dmg = ''
     output_dir = os.getcwd()
     output_name = 'osx-vm'
-    downloaded = False
     cached = False
-    dmg_name = ''
-    guest_os = ''
     hw_version = 12
     mem_size = 2048
     disk_type = 0
-    packer_template = False
     connection_type = 'nat'
-    monitor_vm = False
-    job_id = None
-    enable3d = 'FALSE'
+    mac_address = None
+    enable3d = False
     vnc_port = None
     vnc_passwd = None
-    bridged = 'nat'
-    mac_address = ''
-    hw_model = ''
-    serial_number = ''
+    hw_model = None
+    serial_number = None
+    shared_folder = None
+    packer_template = False
+
+    monitor_vm = False
+    job_id = None
+    downloaded = False
     serial_format = False
-    shared_folder = ''
+    dmg_name = ''
+    guest_os = ''
 
     if not args.input and not args.template and not args.start \
             and not args.stop and not args.reset:
@@ -499,7 +502,7 @@ def main():
         if d.get('mac_address'):
             mac_address = d['mac_address']
         if d.get('enable3d'):
-            enable3d = 'TRUE'
+            enable3d = True
         if d.get('vnc_port'):
             vnc_port = int(d['vnc_port'])
         if d.get('vnc_passwd'):
