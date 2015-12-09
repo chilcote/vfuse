@@ -1,4 +1,5 @@
 {
+    "fusion_path": "",
     "source_dmg": "/path/to/dmg",
     "output_dir": "/path/to/output/dir",
     "output_name": "custom-name",

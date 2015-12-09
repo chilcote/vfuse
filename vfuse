@@ -149,26 +149,32 @@ def unmount_dmg(disk_id):
     if err:
         print colored('Could not detach:\t%s' % disk_id, 'red')
 
-def create_vmdk(output_dir, output_name, disk_id, disk_type):
+def create_vmdk(output_dir, output_name, disk_id, disk_type, fusion_path):
     '''Converts Base OS DMG to VMDK'''
     vmpath = os.path.join(output_dir, output_name + '.vmwarevm')
     link = os.path.join(vmpath, os.path.basename(disk_id) + '-link')
     vmdk = os.path.join(vmpath, output_name + '.vmdk')
-    print colored('Converting DMG to VMDK', 'green')
     if os.path.exists(vmpath):
         print colored('VMware Fusion VM already exists: %s' % vmpath, 'red')
         sys.exit(1)
     os.mkdir(vmpath)
 
-    try:
-        fusion_path = glob.glob('/Applications/VMware Fusion*.app')[0]
-    except IndexError:
-        print colored('Error: VMware Fusion.app not found', 'red')
-        unmount_dmg(disk_id)
-        sys.exit(1)
+    if not fusion_path:
+        cmd = ['/usr/bin/mdfind', 'kMDItemCFBundleIdentifier == com.vmware.fusion']
+        fusion_path = sorted(subprocess.check_output(cmd).strip().split('\n'))[0]
 
+        if not fusion_path:
+            try:
+                fusion_path = glob.glob('/Applications/VMware Fusion*.app')[0]
+            except IndexError:
+                print colored('Error: VMware Fusion.app not found', 'red')
+                unmount_dmg(disk_id)
+                sys.exit(1)
+
+    print colored('Using VMware Fusion path: %s' % fusion_path, 'green')
     fusion_tools_path = os.path.join(fusion_path, 'Contents/Library')
 
+    print colored('Converting DMG to VMDK', 'green')
     try:
         # /Applications/VMware\ Fusion.app/Contents/Library/vmware-rawdiskCreator \
         #                       create /dev/disk2 fullDevice ./disk2-link lsilogic
@@ -370,6 +376,7 @@ def main():
                         'yellow')
 
     # Instantiate variables
+    fusion_path = ''
     source_dmg = ''
     output_dir = os.getcwd()
     output_name = 'osx-vm'
@@ -472,6 +479,8 @@ def main():
     if args.template:
         # Use template-defined keys, otherwise use defaults defined above.
         d = import_template(args.template)
+        if d.get('fusion_path'):
+            fusion_path = os.path.expanduser(d['fusion_path'])
         if not d.get('source_dmg'):
             parser.print_help()
             sys.exit(1)
@@ -538,7 +547,8 @@ def main():
                         output_dir,
                         output_name,
                         disk_id,
-                        disk_type
+                        disk_type,
+                        fusion_path
                     )
     vmx = create_vmx(
                     vmpath,
