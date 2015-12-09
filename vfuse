@@ -77,14 +77,13 @@ def import_template(template):
         sys.exit(1)
     return d
 
-def get_source_dmg(url, dmg, cache, source_dmg=None, downloaded=False,
-                                        cached=False):
+def get_source_dmg(url, dmg, cache_dir, source_dmg=None, downloaded=False, cached=False):
     '''Downloads Base OS DMG if URL defined by user
         Checks cache for existing Base OS image'''
-    if os.path.exists(os.path.join(cache, dmg)):
+    if os.path.exists(os.path.join(cache_dir, dmg)):
         print colored('%s exists in cache' % dmg, 'green')
         cached = True
-        source_dmg = os.path.join(cache, dmg)
+        source_dmg = os.path.join(cache_dir, dmg)
     else:
         print colored('Downloading %s' % url, 'green')
         downloaded = True
@@ -476,8 +475,8 @@ def main():
         else:
             source_dmg = os.path.expanduser(d['source_dmg'])
         if d.get('cache'):
-            cache = d['cache']
-            if 'http' in source_dmg and cache:
+            cached = d['cache']
+            if 'http' in source_dmg and cached:
                 cache_dir = os.path.join(os.getenv('HOME'), '.vfuse')
                 if not os.path.exists(cache_dir):
                     os.mkdir(cache_dir)
