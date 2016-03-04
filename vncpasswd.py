@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 ##############################################################################
-# Copyright 2015 Joseph Chilcote
+# Copyright 2016 Joseph Chilcote
 # 
 #  Licensed under the Apache License, Version 2.0 (the "License"); you may not
 #  use this file except in compliance with the License. You may obtain a copy
@@ -20,6 +20,9 @@
 ## A python implementation of https://communities.vmware.com/docs/DOC-7535
 ## "Compute hashed password for use with RemoteDisplay.vnc.key"
 # d3des library by Yusuke Shinyama: https://vnc2flv.googlecode.com/svn-history/r2/trunk/vnc2flv/vnc2flv/d3des.py
+
+__author__  = 'Joseph Chilcote (chilcote@gmail.com)'
+__version__ = '1.0.0'
 
 from d3des import deskey
 import sys, base64, struct
