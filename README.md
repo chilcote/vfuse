@@ -10,11 +10,10 @@ My thanks to [Rich Trouton](https://twitter.com/rtrouton) for testing this scrip
 Requirements
 ------------
 
-+ VMware Fusion 7.x Professional
-+ OS X 10.9.5+ (compatible with 10.10)
++ VMware Fusion 8.x Professional
++ OS X 10.9.5+
 + A never-booted image created with your [favorite](https://github.com/chilcote/stew) [image creation tool](https://github.com/magervalp/autodmg).
 + (optional) [Packer](https://packer.io) 0.7.2 (or above) for building a vagrant box.
-+ (optional) [vserv](https://github.com/chilcote/vserv) for monitoring virtual machines.
 
 Usage
 -----
@@ -65,7 +64,7 @@ Caveats
 License
 -------
 
-    Copyright 2015 Joseph Chilcote
+    Copyright 2016 Joseph Chilcote
     
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.

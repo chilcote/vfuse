@@ -41,7 +41,7 @@ from random import randint
 from collections import OrderedDict
 from SystemConfiguration import SCDynamicStoreCopyConsoleUser
 try:
-    from vserv import VMXMonitor
+    from vfused import VMXMonitor
 except ImportError as err:
     pass
 
@@ -450,7 +450,7 @@ def main():
             monitor = VMXMonitor()
         except NameError as err:
             print colored(str(err), 'red')
-            print colored('Make sure vserv is installed.', 'red')
+            print colored('Make sure vfused is installed.', 'red')
             sys.exit(1)
         monitor_vm = True
 
@@ -460,7 +460,7 @@ def main():
             monitor = VMXMonitor()
         except NameError as err:
             print colored(str(err), 'red')
-            print colored('Make sure vserv is installed.', 'red')
+            print colored('Make sure vfused is installed.', 'red')
             sys.exit(1)
         vmx = monitor.job_to_vmx(job_id)
         if not vmx:
@@ -482,7 +482,7 @@ def main():
             monitor = VMXMonitor()
         except NameError as err:
             print colored(str(err), 'red')
-            print colored('Make sure vserv is installed.', 'red')
+            print colored('Make sure vfused is installed.', 'red')
             sys.exit(1)
         vmx = monitor.job_to_vmx(job_id)
         if not vmx:
