@@ -14,7 +14,7 @@ Requirements
 + OS X 10.9.5+
 + A never-booted image created with your [favorite](https://github.com/chilcote/stew) [image creation tool](https://github.com/magervalp/autodmg).
 + (optional) [Packer](https://packer.io) 0.7.2 (or above) for building a vagrant box.
-+ (optional) [qemu-img])https://en.wikibooks.org/wiki/QEMU/Installing_QEMU)
++ (optional) [qemu-img](https://en.wikibooks.org/wiki/QEMU/Installing_QEMU)
 
 Usage
 -----
