@@ -155,79 +155,98 @@ def unmount_dmg(disk_id):
     if err:
         print colored('Could not detach:\t%s' % disk_id, 'red')
 
-def create_vmdk(output_dir, output_name, disk_id, disk_type, fusion_path):
+def create_vmdk(output_dir, output_name, disk_id, disk_type, fusion_path, use_qemu, qemu_path, source_dmg):
     '''Converts Base OS DMG to VMDK'''
     vmpath = os.path.join(output_dir, output_name + '.vmwarevm')
-    link = os.path.join(vmpath, os.path.basename(disk_id) + '-link')
-    vmdk = os.path.join(vmpath, output_name + '.vmdk')
     if os.path.exists(vmpath):
         print colored('VMware Fusion VM already exists: %s' % vmpath, 'red')
         sys.exit(1)
     os.mkdir(vmpath)
 
-    if not fusion_path:
-        cmd = ['/usr/bin/mdfind', 'kMDItemCFBundleIdentifier == com.vmware.fusion']
-        fusion_path = sorted(subprocess.check_output(cmd).strip().split('\n'))[0]
+    vmdk = os.path.join(vmpath, output_name + '.vmdk')
+
+    if use_qemu:
+        cmd = [qemu_path, 'convert', '-O', 'vmdk', source_dmg, vmdk]
+        print colored('Using qemu-img path: %s' % qemu_path, 'green')
+        try:
+            task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            out, err = task.communicate()
+            if err:
+                print colored('Error: %s' % err.strip(), 'red')
+                print colored('There is a problem with your DMG, please try again', 'red')
+                sys.exit(1)
+        except OSError as e:
+            err = 'Failed to execute %s: %s' % (cmd[0], e)
+            print colored('Error: %s' % err, 'red')
+            shutil.rmtree(vmpath)
+            sys.exit(1)
+    else:
+        link = os.path.join(vmpath, os.path.basename(disk_id) + '-link')
 
         if not fusion_path:
-            try:
-                fusion_path = glob.glob('/Applications/VMware Fusion*.app')[0]
-            except IndexError:
-                print colored('Error: VMware Fusion.app not found', 'red')
+            cmd = ['/usr/bin/mdfind', 'kMDItemCFBundleIdentifier == com.vmware.fusion']
+            fusion_path = sorted(subprocess.check_output(cmd).strip().split('\n'))[0]
+
+            if not fusion_path:
+                try:
+                    fusion_path = glob.glob('/Applications/VMware Fusion*.app')[0]
+                except IndexError:
+                    print colored('Error: VMware Fusion.app not found', 'red')
+                    unmount_dmg(disk_id)
+                    sys.exit(1)
+
+        print colored('Using VMware Fusion path: %s' % fusion_path, 'green')
+        fusion_tools_path = os.path.join(fusion_path, 'Contents/Library')
+
+        print colored('Converting DMG to VMDK', 'green')
+        try:
+            # /Applications/VMware\ Fusion.app/Contents/Library/vmware-rawdiskCreator \
+            #                       create /dev/disk2 fullDevice ./disk2-link lsilogic
+            cmd = [os.path.join(fusion_tools_path, 'vmware-rawdiskCreator'),
+                                                                        'create',
+                                                                        disk_id,
+                                                                        'fullDevice',
+                                                                        link,
+                                                                        'lsilogic']
+            task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            out, err = task.communicate()
+            if err:
+                print colored('Error: %s' % err.strip(), 'red')
+                print colored('There is a problem with your DMG, please re-create it '\
+                                        'and try again', 'red')
                 unmount_dmg(disk_id)
                 sys.exit(1)
 
-    print colored('Using VMware Fusion path: %s' % fusion_path, 'green')
-    fusion_tools_path = os.path.join(fusion_path, 'Contents/Library')
+            # /Applications/VMware\ Fusion.app/Contents/Library/vmware-vdiskmanager -r \
+            #                       ./disk2-link.vmdk -t 0 ./osx-disk.vmdk
+            cmd = [os.path.join(fusion_tools_path, 'vmware-vdiskmanager'),
+                                                                        '-r',
+                                                                        link + '.vmdk',
+                                                                        '-t',
+                                                                        str(disk_type),
+                                                                        vmdk]
+            task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            out, err = task.communicate()
+            if task.returncode:
+                if not err:
+                    err = 'Undetermined error with vmware-vdiskmanager'
+                raise VdiskManagerError(err.strip())
 
-    print colored('Converting DMG to VMDK', 'green')
-    try:
-        # /Applications/VMware\ Fusion.app/Contents/Library/vmware-rawdiskCreator \
-        #                       create /dev/disk2 fullDevice ./disk2-link lsilogic
-        cmd = [os.path.join(fusion_tools_path, 'vmware-rawdiskCreator'),
-                                                                    'create',
-                                                                    disk_id,
-                                                                    'fullDevice',
-                                                                    link,
-                                                                    'lsilogic']
-        task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = task.communicate()
-        if err:
-            print colored('Error: %s' % err.strip(), 'red')
-            print colored('There is a problem with your DMG, please re-create it '\
-                                    'and try again', 'red')
+        except OSError as e:
+            err = 'Failed to execute %s: %s' % (cmd[0], e)
+            print colored('Error: %s' % err, 'red')
             unmount_dmg(disk_id)
+            shutil.rmtree(vmpath)
             sys.exit(1)
 
-        # /Applications/VMware\ Fusion.app/Contents/Library/vmware-vdiskmanager -r \
-        #                       ./disk2-link.vmdk -t 0 ./osx-disk.vmdk
-        cmd = [os.path.join(fusion_tools_path, 'vmware-vdiskmanager'),
-                                                                    '-r',
-                                                                    link + '.vmdk',
-                                                                    '-t',
-                                                                    str(disk_type),
-                                                                    vmdk]
-        task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = task.communicate()
-        if task.returncode:
-            if not err:
-                err = 'Undetermined error with vmware-vdiskmanager'
-            raise VdiskManagerError(err.strip())
+        except VdiskManagerError, e:
+            print colored('Error: %s' % e, 'red')
+            unmount_dmg(disk_id)
+            shutil.rmtree(vmpath)
+            sys.exit(1)
 
-    except OSError as e:
-        err = 'Failed to execute %s: %s' % (cmd[0], e)
-        print colored('Error: %s' % err, 'red')
-        unmount_dmg(disk_id)
-        shutil.rmtree(vmpath)
-        sys.exit(1)
+        os.remove(link + '.vmdk')
 
-    except VdiskManagerError, e:
-        print colored('Error: %s' % e, 'red')
-        unmount_dmg(disk_id)
-        shutil.rmtree(vmpath)
-        sys.exit(1)
-
-    os.remove(link + '.vmdk')
     return vmpath
 
 def set_perms(path):
@@ -385,9 +404,12 @@ def main():
                         help='Start monitoring of VM')
     parser.add_argument('--stop', help='Stop monitoring of VM')
     parser.add_argument('--reset', help='Reset monitored VM')
+    parser.add_argument('--use-qemu',
+                        help='Use qemu-img intead of the Fusion CLI tools',
+                        action='store_true')
     args = parser.parse_args()
 
-    if os.getuid() != 0 and not args.stop and not args.reset:
+    if os.getuid() != 0 and not args.stop and not args.reset and not args.use_qemu:
         print colored('If you don\'t want to be prompted in the GUI for an ' \
                         'admin password, run this script with sudo rights\n',
                         'yellow')
@@ -410,6 +432,8 @@ def main():
     serial_number = None
     shared_folder = None
     packer_template = False
+    use_qemu = False
+    qemu_path = '/usr/local/bin/qemu-img'
 
     monitor_vm = False
     job_id = None
@@ -493,6 +517,9 @@ def main():
             set_perms(monitor.plist)
         sys.exit(0)
 
+    if args.use_qemu:
+        use_qemu = True
+
     if args.template:
         # Use template-defined keys, otherwise use defaults defined above.
         d = import_template(args.template)
@@ -539,6 +566,10 @@ def main():
             serial_number = d['serial_number']
         if d.get('shared_folder'):
             shared_folder = os.path.expanduser(d['shared_folder'])
+        if d.get('use_qemu'):
+            use_qemu = d['use_qemu']
+        if d.get('qemu_path'):
+            qemu_path = d['qemu_path']
 
     mount_point, disk_id = mount_dmg(source_dmg)
 
@@ -565,8 +596,12 @@ def main():
                         output_name,
                         disk_id,
                         disk_type,
-                        fusion_path
-                    )
+                        fusion_path,
+                        use_qemu,
+                        qemu_path,
+                        source_dmg
+                        )
+
     vmx = create_vmx(
                     vmpath,
                     output_name,
