@@ -14,13 +14,14 @@ Requirements
 + OS X 10.9.5+
 + A never-booted image created with your [favorite](https://github.com/chilcote/stew) [image creation tool](https://github.com/magervalp/autodmg).
 + (optional) [Packer](https://packer.io) 0.7.2 (or above) for building a vagrant box.
++ (optional) [qemu-img])https://en.wikibooks.org/wiki/QEMU/Installing_QEMU)
 
 Usage
 -----
 
     usage: vfuse [-h] [-i INPUT] [-o OUTPUT] [-n NAME] [-w HW_VERSION]
                  [-m MEM_SIZE] [-t TEMPLATE] [-e] [-p PACKER] [--start [START]]
-                 [--stop STOP] [--reset RESET]
+                 [--stop STOP] [--reset RESET] [--use-qemu]
 
     Create and monitor VM from source DMG.
 
@@ -43,7 +44,7 @@ Usage
       --start [START]       Start monitoring of VM
       --stop STOP           Stop monitoring of VM
       --reset RESET         Reset monitored VM
-
+      --use-qemu            Use qemu-img intead of the Fusion CLI tools
 
 Creating a VM
 -------------
@@ -52,7 +53,7 @@ Running `vfuse` does not necessarily require sudo rights, but if you don't want 
 
 The only required argument is `-i` aka `--input`. Run thusly, it will create a vm called `osx-vm.vmwarevm` in the current working directory:
 
-    vfuse -i /path/to/dmg
+    /usr/local/vfuse/vfuse -i /path/to/dmg
 
 See the [wiki](https://github.com/chilcote/vfuse/wiki) for more on how to use `vfuse`.
 
