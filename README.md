@@ -51,7 +51,7 @@ Creating a VM
 
 Running `vfuse` does not necessarily require sudo rights, but if you don't want to be prompted in the GUI for an admin password, run it with `sudo`. Escalated privileges is required to run the `vmware-vdiskmanager` binary, which `vfuse` uses.
 
-The only required argument is `-i` aka `--input`. Run thusly, it will create a vm called `osx-vm.vmwarevm` in the current working directory:
+The only required argument is `-i` aka `--input`. Run thusly, it will create a vm called `macos-vm.vmwarevm` in the current working directory:
 
     /usr/local/vfuse/vfuse -i /path/to/dmg
 
