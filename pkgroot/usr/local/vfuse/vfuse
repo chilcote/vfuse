@@ -219,7 +219,7 @@ def create_vmdk(output_dir, output_name, disk_id, disk_type, fusion_path, use_qe
                 sys.exit(1)
 
             # /Applications/VMware\ Fusion.app/Contents/Library/vmware-vdiskmanager -r \
-            #                       ./disk2-link.vmdk -t 0 ./osx-disk.vmdk
+            #                       ./disk2-link.vmdk -t 0 ./macos-disk.vmdk
             cmd = [os.path.join(fusion_tools_path, 'vmware-vdiskmanager'),
                                                                         '-r',
                                                                         link + '.vmdk',
@@ -419,7 +419,7 @@ def main():
     fusion_path = ''
     source_dmg = ''
     output_dir = os.getcwd()
-    output_name = 'osx-vm'
+    output_name = 'macos-vm'
     cached = False
     hw_version = 12
     mem_size = 2048
