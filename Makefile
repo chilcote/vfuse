@@ -1,7 +1,7 @@
 # Shameless fork from the far superior https://github.com/clburlison/pinpoint/blob/master/Makefile
 
 PKGTITLE="vfuse"
-PKGVERSION="1.0.0"
+PKGVERSION="1.0.1"
 PKGID=com.chilcote.vfuse
 PROJECT="vfuse"
 
