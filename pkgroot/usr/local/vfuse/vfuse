@@ -74,7 +74,11 @@ def import_template(template):
     '''Imports user-defined template'''
     try:
         with open(template) as f:
-            d = json.load(f)
+            try:
+                d = json.load(f)
+            except ValueError as err:
+                print colored('Unable to parse %s\nError: %s' % (template, err), 'red')
+                sys.exit(1)
     except NameError as err:
         print colored('%s; bailing script.' % err, 'red')
         sys.exit(1)
