@@ -37,6 +37,8 @@ import time
 import json
 import argparse
 import glob
+import random
+import string
 from random import randint
 from collections import OrderedDict
 from SystemConfiguration import SCDynamicStoreCopyConsoleUser
@@ -449,6 +451,8 @@ def main():
                         type=int)
     parser.add_argument('-m', '--mem-size', help='Memory Size in MB',
                         type=int)
+    parser.add_argument('-s', '--serial', help='Custom Serial number', nargs='?',
+                        const='random', default=None)
     parser.add_argument('-t', '--template', help='Use a template')
     parser.add_argument('-e', '--esx',
                         help='Create pre-allocated ESX-type VMDK',
@@ -518,6 +522,12 @@ def main():
 
     if args.mem_size:
         mem_size = args.mem_size
+
+    if args.serial == 'random':
+        s = string.lowercase + string.digits
+        serial_number = 'VM' + ''.join(random.sample(s, 10))
+    else:
+        serial_number = args.serial
 
     if args.esx:
         disk_type = 4
