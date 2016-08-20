@@ -37,9 +37,8 @@ import time
 import json
 import argparse
 import glob
-import random
 import string
-from random import randint
+from random import randint, sample
 from collections import OrderedDict
 from SystemConfiguration import SCDynamicStoreCopyConsoleUser
 try:
@@ -525,7 +524,7 @@ def main():
 
     if args.serial == 'random':
         s = string.lowercase + string.digits
-        serial_number = 'VM' + ''.join(random.sample(s, 10))
+        serial_number = 'VM' + ''.join(sample(s, 10))
     else:
         serial_number = args.serial
 
