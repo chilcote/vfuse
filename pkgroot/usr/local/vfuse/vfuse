@@ -661,13 +661,21 @@ def main():
     # 10.9 (darwin13-64) requires virtualHW.version 10
     # 10.10 (darwin14-64) requires virtualHW.version 11
     # 10.11 (darwin15-64) requires virtualHW.version 12
-    if os_rev + 1 > hw_version:
+    # 10.12 (darwin16-64) requires virtualHW.version 12 # What?? Apparently so.
+    if os_rev >= 12:
+        hw_check = os_rev
+    else:
+        hw_check = os_rev + 1
+
+    if hw_check > hw_version:
         print colored('VMware hardware version %d does not officially ' \
                       'support 10.%d' % (hw_version, os_rev), 'yellow')
-    if os_rev == 12:
-        guest_os = 'darwin%d-64' % (os_rev + 3)
-    else:
-        guest_os = 'darwin%d-64' % (os_rev + 4)
+
+    #if os_rev == 12:
+    #    guest_os = 'darwin%d-64' % (os_rev + 3)
+    #else:
+    #    guest_os = 'darwin%d-64' % (os_rev + 4)
+    guest_os = 'darwin%d-64' % (os_rev + 4)
 
     vmpath = create_vmdk(
                         output_dir,
