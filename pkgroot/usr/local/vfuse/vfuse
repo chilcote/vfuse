@@ -252,6 +252,14 @@ def create_vmdk(output_dir, output_name, disk_id, disk_type, fusion_path, use_qe
 
         os.remove(link + '.vmdk')
 
+        print colored('Hiding file extension', 'green')
+        try:
+            cmd = ['/usr/bin/SetFile', '-a', 'E', vmpath]
+            task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            out, err = task.communicate()
+        except err:
+            print colored('Error: %s' % err.strip(), 'red')
+
     return vmpath
 
 def set_perms(path):
