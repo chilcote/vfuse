@@ -366,7 +366,7 @@ def create_vmx(
         if dvdiso:
             f.write('\nsata0:2.present = "TRUE"\n')
             f.write('sata0:2.autodetect = "TRUE"\n')
-            f.write('sata0:2.deviceType = "cdrom-raw"\n')
+            f.write('sata0:2.deviceType = "cdrom-image"\n')
             f.write('sata0:2.fileName = "%s"' % dvdiso)
     return vmx
 
