@@ -362,6 +362,11 @@ def create_vmx(
             f.write('sharedFolder0.guestName = "-vfuse"\n')
             f.write('sharedFolder0.expiration = "never"\n')
             f.write('sharedfolder.maxnum = "1"')
+        if dvdiso:
+            f.write('sata0:2.present = "TRUE"\n')
+            f.write('sata0:2.autodetect = "TRUE"\n')
+            f.write('sata0:1.deviceType = "cdrom-raw"\n')
+            f.write('sata0:0.fileName = "%s.iso"\n' % dvdiso)
     return vmx
 
 def generic_packer_template():
@@ -465,6 +470,7 @@ def main():
                         help='Create pre-allocated ESX-type VMDK',
                         action='store_true')
     parser.add_argument('-p', '--packer', help='Populate a packer template')
+    parser.add_argument('-d', help='Path to CD/DVD ISO path ', default=None)
     parser.add_argument('--hw-model', help='Custom hardware model', default=None)
     parser.add_argument('--start', nargs='?', const=randint(1000, 9999),
                         help='Start monitoring of VM')
@@ -527,6 +533,9 @@ def main():
 
     if args.hw_model:
         hw_model = args.hw_model
+
+    if args.d:
+        dvdiso = args.d
 
     if args.hw_version:
         hw_version = args.hw_version
