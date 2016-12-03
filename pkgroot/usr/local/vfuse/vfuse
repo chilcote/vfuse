@@ -364,10 +364,10 @@ def create_vmx(
             f.write('sharedFolder0.expiration = "never"\n')
             f.write('sharedfolder.maxnum = "1"')
         if dvdiso:
-            f.write('sata0:2.present = "TRUE"\n')
+            f.write('\nsata0:2.present = "TRUE"\n')
             f.write('sata0:2.autodetect = "TRUE"\n')
             f.write('sata0:2.deviceType = "cdrom-raw"\n')
-            f.write('sata0:2.fileName = "%s.iso"\n' % dvdiso)
+            f.write('sata0:2.fileName = "%s"' % dvdiso)
     return vmx
 
 def generic_packer_template():
