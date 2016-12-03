@@ -366,8 +366,8 @@ def create_vmx(
         if dvdiso:
             f.write('sata0:2.present = "TRUE"\n')
             f.write('sata0:2.autodetect = "TRUE"\n')
-            f.write('sata0:1.deviceType = "cdrom-raw"\n')
-            f.write('sata0:0.fileName = "%s.iso"\n' % dvdiso)
+            f.write('sata0:2.deviceType = "cdrom-raw"\n')
+            f.write('sata0:2.fileName = "%s.iso"\n' % dvdiso)
     return vmx
 
 def generic_packer_template():
@@ -707,8 +707,7 @@ def main():
                         fusion_path,
                         use_qemu,
                         qemu_path,
-                        source_dmg,
-                        dvdiso
+                        source_dmg
                         )
 
     vmx = create_vmx(
@@ -725,7 +724,8 @@ def main():
                     hw_model,
                     serial_number,
                     serial_format,
-                    shared_folder
+                    shared_folder,
+                    dvdiso
                 )
     unmount_dmg(disk_id)
     if os.getuid() == 0:
