@@ -465,6 +465,7 @@ def main():
                         help='Create pre-allocated ESX-type VMDK',
                         action='store_true')
     parser.add_argument('-p', '--packer', help='Populate a packer template')
+    parser.add_argument('--hw-model', help='Custom hardware model', default=None)
     parser.add_argument('--start', nargs='?', const=randint(1000, 9999),
                         help='Start monitoring of VM')
     parser.add_argument('--stop', help='Stop monitoring of VM')
@@ -523,6 +524,9 @@ def main():
 
     if args.name:
         output_name = args.name
+
+    if args.hw_model:
+        hw_model = args.hw_model
 
     if args.hw_version:
         hw_version = args.hw_version
