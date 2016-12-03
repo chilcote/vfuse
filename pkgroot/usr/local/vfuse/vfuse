@@ -706,7 +706,8 @@ def main():
                         fusion_path,
                         use_qemu,
                         qemu_path,
-                        source_dmg
+                        source_dmg,
+                        dvdiso
                         )
 
     vmx = create_vmx(
