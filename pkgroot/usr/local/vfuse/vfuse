@@ -496,6 +496,7 @@ def main():
     hw_version = 12
     mem_size = 2048
     disk_type = 0
+    dvdiso = None
     connection_type = 'nat'
     mac_address = None
     enable3d = False
