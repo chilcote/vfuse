@@ -284,7 +284,8 @@ def create_vmx(
                 hw_model,
                 serial_number,
                 serial_format,
-                shared_folder
+                shared_folder,
+                dvdiso
             ):
     '''Generates a working VMX file'''
     vmx = os.path.join(vmpath, output_name + '.vmx')
@@ -362,6 +363,11 @@ def create_vmx(
             f.write('sharedFolder0.guestName = "-vfuse"\n')
             f.write('sharedFolder0.expiration = "never"\n')
             f.write('sharedfolder.maxnum = "1"')
+        if dvdiso:
+            f.write('\nsata0:2.present = "TRUE"\n')
+            f.write('sata0:2.autodetect = "TRUE"\n')
+            f.write('sata0:2.deviceType = "cdrom-image"\n')
+            f.write('sata0:2.fileName = "%s"' % dvdiso)
     return vmx
 
 def generic_packer_template():
@@ -465,6 +471,7 @@ def main():
                         help='Create pre-allocated ESX-type VMDK',
                         action='store_true')
     parser.add_argument('-p', '--packer', help='Populate a packer template')
+    parser.add_argument('-d', help='Path to CD/DVD ISO path ', default=None)
     parser.add_argument('--hw-model', help='Custom hardware model', default=None)
     parser.add_argument('--start', nargs='?', const=randint(1000, 9999),
                         help='Start monitoring of VM')
@@ -489,6 +496,7 @@ def main():
     hw_version = 12
     mem_size = 2048
     disk_type = 0
+    dvdiso = None
     connection_type = 'nat'
     mac_address = None
     enable3d = False
@@ -527,6 +535,9 @@ def main():
 
     if args.hw_model:
         hw_model = args.hw_model
+
+    if args.d:
+        dvdiso = args.d
 
     if args.hw_version:
         hw_version = args.hw_version
@@ -714,7 +725,8 @@ def main():
                     hw_model,
                     serial_number,
                     serial_format,
-                    shared_folder
+                    shared_folder,
+                    dvdiso
                 )
     unmount_dmg(disk_id)
     if os.getuid() == 0:
