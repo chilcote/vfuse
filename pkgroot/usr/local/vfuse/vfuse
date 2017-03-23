@@ -390,7 +390,7 @@ def generic_packer_template():
     }
     return OrderedDict(d)
 
-def populate_packer_template(path, template):
+def populate_packer_template(path, template, os_rev):
     '''Creates a packer template file'''
     if not os.path.exists(template):
         print colored('File not found; creating generic one: %s' % template,
@@ -400,6 +400,10 @@ def populate_packer_template(path, template):
         with open(template, 'r') as f:
             d = json.load(f, object_pairs_hook=OrderedDict)
     d['builders'][0]['source_path'] = path
+    # handle alternate darwin iso used as of VMware Fusion 8.5.4, for
+    # pre-10.11 guests
+    if os_rev < 11:
+        d['builders'][0]['tools_upload_flavor'] = 'darwinPre15'
     with open(template, 'w') as f:
         json.dump(d, f, indent=4, separators=(',', ': '))
     set_perms(template)
@@ -734,7 +738,7 @@ def main():
 
     if packer_template:
         print colored('Generating packer template: %s' % packer_template, 'green')
-        populate_packer_template(vmpath, packer_template)
+        populate_packer_template(vmpath, packer_template, os_rev)
 
     if monitor_vm:
         monitor.set_start(str(vmx), str(job_id))
