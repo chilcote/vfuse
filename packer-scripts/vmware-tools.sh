@@ -3,7 +3,10 @@
 # fork of Tim Sutton's osx-vm-template script:
 # https://github.com/timsutton/osx-vm-templates/blob/master/scripts/vmware.sh
 
-TOOLS_PATH="/Users/$USERNAME/darwin.iso"
+# Globbing here: VMware Fusion >= 8.5.4 includes a second
+# 'darwinPre15.iso' for any OS X guests pre-10.11
+TOOLS_PATH=$(find "/Users/$USERNAME/" -name '*darwin*.iso' -print)
+
 # VMware Fusion specific items
 if [ -e .vmfusion_version ] || [[ "$PACKER_BUILDER_TYPE" == vmware* ]]; then
     if [ ! -e "$TOOLS_PATH" ]; then
