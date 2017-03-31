@@ -350,8 +350,11 @@ def create_vmx(
             f.write('\nethernet0.addressType = "generated"')
         if hw_model:
             f.write('\nhw.model = "%s"' % hw_model)
+            f.write('\nhw.model.reflectHost = "FALSE"')
+            f.write('\nsmbios.reflectHost = "FALSE"')
         if serial_number:
             f.write('\nserialNumber = "%s"' % serial_number)
+            f.write('\nserialNumber.reflectHost = "FALSE"')
         if serial_format:
             f.write('\nSMBIOS.use12CharSerialNumber = "TRUE"')
         if shared_folder:
