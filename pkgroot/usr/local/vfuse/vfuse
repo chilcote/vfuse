@@ -365,7 +365,10 @@ def create_vmx(
             f.write('sharedFolder0.hostPath = "%s"\n' % shared_folder)
             f.write('sharedFolder0.guestName = "-vfuse"\n')
             f.write('sharedFolder0.expiration = "never"\n')
-            f.write('sharedfolder.maxnum = "1"')
+            f.write('sharedfolder.maxnum = "1"\n')
+            f.write('hgfs.mapRootShare = "TRUE"\n')
+            f.write('hgfs.linkRootShare = "TRUE"\n')
+            f.write('isolation.tools.hgfs.disable = "FALSE"')
         if dvdiso:
             f.write('\nsata0:2.present = "TRUE"\n')
             f.write('sata0:2.autodetect = "TRUE"\n')
