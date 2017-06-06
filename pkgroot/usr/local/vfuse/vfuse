@@ -696,9 +696,7 @@ def main():
     # 10.11 (darwin15-64) requires virtualHW.version 12
     # 10.12 (darwin16-64) requires virtualHW.version 12 # What?? Apparently so.
     # 10.13 (darwin17-64) requires virtualHW.version 12 # What?? Apparently so.
-    if os_rev >= 13:
-        hw_check = os_rev - 1
-    elif os_rev >= 12:
+    if os_rev >= 12:
         hw_check = os_rev
     else:
         hw_check = os_rev + 1
@@ -711,6 +709,10 @@ def main():
     #    guest_os = 'darwin%d-64' % (os_rev + 3)
     #else:
     #    guest_os = 'darwin%d-64' % (os_rev + 4)
+
+    # Need to drop down to darwin16-64 for now on macOS 10.13
+    if os_rev >= 13:
+        os_rev = os_rev -1
     guest_os = 'darwin%d-64' % (os_rev + 4)
 
     vmpath = create_vmdk(
