@@ -685,7 +685,7 @@ def main():
     os_rev = int(os_vers.split('.')[1])
     if os_rev <= 8:
         serial_format = True
-    if (os_rev < 7) or (os_rev > 12):
+    if (os_rev < 7) or (os_rev > 13):
         print colored('This macOS version is not supported: %s' % os_vers, 'red')
         unmount_dmg(mount_point)
         sys.exit(1)
@@ -695,7 +695,10 @@ def main():
     # 10.10 (darwin14-64) requires virtualHW.version 11
     # 10.11 (darwin15-64) requires virtualHW.version 12
     # 10.12 (darwin16-64) requires virtualHW.version 12 # What?? Apparently so.
-    if os_rev >= 12:
+    # 10.13 (darwin17-64) requires virtualHW.version 12 # What?? Apparently so.
+    if os_rev >= 13:
+        hw_check = os_rev - 1
+    elif os_rev >= 12:
         hw_check = os_rev
     else:
         hw_check = os_rev + 1
