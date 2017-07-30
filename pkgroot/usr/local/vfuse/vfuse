@@ -24,7 +24,7 @@ Requirements:
 ##############################################################################
 
 __author__  = 'Joseph Chilcote (chilcote@gmail.com)'
-__version__ = '1.0.2'
+__version__ = '1.0.4'
 
 import os
 import sys
@@ -285,7 +285,8 @@ def create_vmx(
                 serial_number,
                 serial_format,
                 shared_folder,
-                dvdiso
+                dvdiso,
+                recovery
             ):
     '''Generates a working VMX file'''
     vmx = os.path.join(vmpath, output_name + '.vmx')
@@ -374,6 +375,8 @@ def create_vmx(
             f.write('sata0:2.autodetect = "TRUE"\n')
             f.write('sata0:2.deviceType = "cdrom-image"\n')
             f.write('sata0:2.fileName = "%s"' % dvdiso)
+        if recovery:
+            f.write('\nmacosguest.forceRecoveryModeInstall = "TRUE"')
     return vmx
 
 def generic_packer_template():
@@ -490,6 +493,9 @@ def main():
     parser.add_argument('--use-qemu',
                         help='Use qemu-img intead of the Fusion CLI tools',
                         action='store_true')
+    parser.add_argument('--recovery',
+                        help='Boot into Recovery HD',
+                        action='store_true')
     args = parser.parse_args()
 
     if os.getuid() != 0 and not args.stop and not args.reset and not args.use_qemu:
@@ -521,6 +527,7 @@ def main():
     netboot = False
     netboot_hdsize = '40'
     netboot_osvers = get_osvers('/')
+    recovery = False
 
     monitor_vm = False
     job_id = None
@@ -619,6 +626,9 @@ def main():
     if args.use_qemu:
         use_qemu = True
 
+    if args.recovery:
+        recovery = True
+
     if args.template:
         # Use template-defined keys, otherwise use defaults defined above.
         d = import_template(args.template)
@@ -677,6 +687,8 @@ def main():
             use_qemu = d['use_qemu']
         if d.get('qemu_path'):
             qemu_path = d['qemu_path']
+        if d.get('recovery'):
+            recovery = d['recovery']
 
     mount_point, disk_id = mount_dmg(source_dmg)
 
@@ -741,7 +753,8 @@ def main():
                     serial_number,
                     serial_format,
                     shared_folder,
-                    dvdiso
+                    dvdiso,
+                    recovery
                 )
     unmount_dmg(disk_id)
     if os.getuid() == 0:

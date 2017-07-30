@@ -21,7 +21,7 @@ Usage
 
     usage: vfuse [-h] [-i INPUT] [-o OUTPUT] [-n NAME] [-w HW_VERSION]
                  [-m MEM_SIZE] [-t TEMPLATE] [-e] [-p PACKER] [--start [START]]
-                 [--stop STOP] [--reset RESET] [--use-qemu]
+                 [--stop STOP] [--reset RESET] [--use-qemu] [--recovery]
 
     Create and monitor VM from source DMG.
 
@@ -45,6 +45,7 @@ Usage
       --stop STOP           Stop monitoring of VM
       --reset RESET         Reset monitored VM
       --use-qemu            Use qemu-img intead of the Fusion CLI tools
+      --recovery            Boot into Recovery HD
 
 Creating a VM
 -------------
@@ -65,7 +66,7 @@ Caveats
 License
 -------
 
-    Copyright 2016 Joseph Chilcote
+    Copyright 2016-Present Joseph Chilcote
     
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
