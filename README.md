@@ -36,6 +36,8 @@ Usage
                             VMware hardware version
       -m MEM_SIZE, --mem-size MEM_SIZE
                             Memory Size in MB
+      -s [SERIAL], --serial [SERIAL]
+                            Custom Serial Number
       -t TEMPLATE, --template TEMPLATE
                             Use a template
       -e, --esx             Create pre-allocated ESX-type VMDK
