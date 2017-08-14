@@ -43,6 +43,7 @@ Usage
       -e, --esx             Create pre-allocated ESX-type VMDK
       -p PACKER, --packer PACKER
                             Populate a packer template
+      --hw-model HW_MODEL   Custom Hardware Model                           
       --start [START]       Start monitoring of VM
       --stop STOP           Stop monitoring of VM
       --reset RESET         Reset monitored VM
