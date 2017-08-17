@@ -4,18 +4,18 @@ This script takes a never-booted DMG and converts it to a VMware Fusion VM.
 
 Requirements:
     VMware Fusion 7.x Professional
-    OS X 10.9.5+ (compatible with 10.10)
+    OS X 10.9.5+
     A never-booted image (i.e. created with AutoDMG)
 '''
 ##############################################################################
 # Copyright 2016 Joseph Chilcote
-# 
+#
 #  Licensed under the Apache License, Version 2.0 (the "License"); you may not
 #  use this file except in compliance with the License. You may obtain a copy
 #  of the License at
-# 
+#
 #       http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #  Unless required by applicable law or agreed to in writing, software
 #  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
 #  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -23,7 +23,7 @@ Requirements:
 #  under the License.
 ##############################################################################
 
-__author__  = 'Joseph Chilcote (chilcote@gmail.com)'
+__author__ = 'Joseph Chilcote (chilcote@gmail.com)'
 __version__ = '1.0.4'
 
 import os
@@ -33,7 +33,6 @@ import plistlib
 import urllib2
 import tempfile
 import shutil
-import time
 import json
 import argparse
 import glob
@@ -46,11 +45,14 @@ try:
 except ImportError as err:
     pass
 
+
 class Error(Exception):
     """Class for domain specific exceptions."""
 
+
 class VdiskManagerError(Error):
     """Gathers error from vmware-vdiskmanager."""
+
 
 def colored(text, color=None):
     if not os.getenv('ANSI_COLORS_DISABLED'):
@@ -71,6 +73,7 @@ def colored(text, color=None):
             text = fmt_str % (colors[color]) + text + reset
     return text
 
+
 def import_template(template):
     '''Imports user-defined template'''
     try:
@@ -78,7 +81,9 @@ def import_template(template):
             try:
                 d = json.load(f)
             except ValueError as err:
-                print colored('Unable to parse %s\nError: %s' % (template, err), 'red')
+                print colored('Unable to parse %s\n'
+                              'Error: %s' % (template, err),
+                              'red')
                 sys.exit(1)
     except NameError as err:
         print colored('%s; bailing script.' % err, 'red')
@@ -88,7 +93,9 @@ def import_template(template):
         sys.exit(1)
     return d
 
-def get_source_dmg(url, dmg, cache_dir, source_dmg=None, downloaded=False, cached=False):
+
+def get_source_dmg(url, dmg, cache_dir,
+                   source_dmg=None, downloaded=False, cached=False):
     '''Downloads Base OS DMG if URL defined by user
         Checks cache for existing Base OS image'''
     if os.path.exists(os.path.join(cache_dir, dmg)):
@@ -111,7 +118,8 @@ def get_source_dmg(url, dmg, cache_dir, source_dmg=None, downloaded=False, cache
             sys.exit(1)
     return source_dmg, downloaded, cached
 
-def mount_dmg(dmg, disk_id = False):
+
+def mount_dmg(dmg, disk_id=False):
     '''Mounts base DMG'''
     d = {}
     if not dmg:
@@ -119,32 +127,36 @@ def mount_dmg(dmg, disk_id = False):
         sys.exit(1)
     print colored('Mounting %s' % dmg, 'green')
     try:
-        output = subprocess.check_output(['/usr/bin/hdiutil', 'attach',
-                                    '-nobrowse', '-noverify', '-noautoopen',
-                                    dmg, '-plist'])
+        output = subprocess.check_output(['/usr/bin/hdiutil',
+                                          'attach',
+                                          '-nobrowse',
+                                          '-noverify',
+                                          '-noautoopen',
+                                          dmg, '-plist'])
         d = plistlib.readPlistFromString(output)
         ignored_vols = ('Preboot', 'Recovery', 'VM')
         for i in d['system-entities']:
             if i.get('mount-point', None):
-		if i['mount-point'].split('/')[-1] not in ignored_vols:
+                if i['mount-point'].split('/')[-1] not in ignored_vols:
                     mount_point = i['mount-point']
                     volume_kind = i['volume-kind']
                     mountpoint_dev_entry = i['dev-entry']
             if i['content-hint'] == 'GUID_partition_scheme':
                 disk_id = i['dev-entry']
         if not disk_id:
-            print colored('Warning: your DMG does not have a partition '\
-                            'scheme, and vfuse may fail', 'yellow')
+            print colored('Warning: your DMG does not have a partition '
+                          'scheme, and vfuse may fail', 'yellow')
             disk_id = mountpoint_dev_entry
         return mount_point, disk_id, volume_kind
-    except subprocess.CalledProcessError as err:
+    except subprocess.CalledProcessError:
         print colored('Cannot mount dmg: %s' % dmg, 'red')
         sys.exit(1)
+
 
 def get_osvers(mount_point):
     '''Returns the OS Version of the mounted system DMG'''
     f = os.path.join(mount_point,
-                        'System/Library/CoreServices/SystemVersion.plist')
+                     'System/Library/CoreServices/SystemVersion.plist')
     try:
         d = plistlib.readPlist(f)
         return d['ProductVersion']
@@ -152,6 +164,7 @@ def get_osvers(mount_point):
         print colored(str(err), 'red')
         unmount_dmg(mount_point)
         sys.exit(1)
+
 
 def unmount_dmg(pathname):
     '''Unmounts a DMG'''
@@ -162,7 +175,9 @@ def unmount_dmg(pathname):
     if err:
         print colored('Could not detach:\t%s' % pathname, 'red')
 
-def create_vmdk(output_dir, output_name, disk_id, disk_type, fusion_path, use_qemu, qemu_path, source_dmg):
+
+def create_vmdk(output_dir, output_name, disk_id, disk_type,
+                fusion_path, use_qemu, qemu_path, source_dmg):
     '''Converts Base OS DMG to VMDK'''
     vmpath = os.path.join(output_dir, output_name + '.vmwarevm')
     if os.path.exists(vmpath):
@@ -177,11 +192,14 @@ def create_vmdk(output_dir, output_name, disk_id, disk_type, fusion_path, use_qe
         print colored('Using qemu-img path: %s' % qemu_path, 'green')
         print colored('Converting DMG to VMDK', 'green')
         try:
-            task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            task = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE)
             out, err = task.communicate()
             if err:
                 print colored('Error: %s' % err.strip(), 'red')
-                print colored('There is a problem with your DMG, please try again', 'red')
+                print colored('There is a problem with your DMG, '
+                              'please try again',
+                              'red')
                 sys.exit(1)
         except OSError as e:
             err = 'Failed to execute %s: %s' % (cmd[0], e)
@@ -192,12 +210,15 @@ def create_vmdk(output_dir, output_name, disk_id, disk_type, fusion_path, use_qe
         link = os.path.join(vmpath, os.path.basename(disk_id) + '-link')
 
         if not fusion_path:
-            cmd = ['/usr/bin/mdfind', 'kMDItemCFBundleIdentifier == com.vmware.fusion']
-            fusion_path = sorted(subprocess.check_output(cmd).strip().split('\n'))[0]
+            cmd = ['/usr/bin/mdfind',
+                   'kMDItemCFBundleIdentifier == com.vmware.fusion']
+            fusion_path = sorted(
+                subprocess.check_output(cmd).strip().split('\n'))[0]
 
             if not fusion_path:
                 try:
-                    fusion_path = glob.glob('/Applications/VMware Fusion*.app')[0]
+                    fusion_path = glob.glob(
+                        '/Applications/VMware Fusion*.app')[0]
                 except IndexError:
                     print colored('Error: VMware Fusion.app not found', 'red')
                     unmount_dmg(disk_id)
@@ -208,32 +229,36 @@ def create_vmdk(output_dir, output_name, disk_id, disk_type, fusion_path, use_qe
 
         print colored('Converting DMG to VMDK', 'green')
         try:
-            # /Applications/VMware\ Fusion.app/Contents/Library/vmware-rawdiskCreator \
-            #                       create /dev/disk2 fullDevice ./disk2-link lsilogic
+            # /Applications/VMware\ Fusion.app/Contents/Library/\
+            # vmware-rawdiskCreator create /dev/disk2 \
+            # fullDevice ./disk2-link lsilogic
             cmd = [os.path.join(fusion_tools_path, 'vmware-rawdiskCreator'),
-                                                                        'create',
-                                                                        disk_id,
-                                                                        'fullDevice',
-                                                                        link,
-                                                                        'lsilogic']
-            task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                   'create',
+                   disk_id,
+                   'fullDevice',
+                   link,
+                   'lsilogic']
+            task = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE)
             out, err = task.communicate()
             if err:
                 print colored('Error: %s' % err.strip(), 'red')
-                print colored('There is a problem with your DMG, please re-create it '\
-                                        'and try again', 'red')
+                print colored('There is a problem with your DMG; '
+                              'please re-create it and try again',
+                              'red')
                 unmount_dmg(disk_id)
                 sys.exit(1)
 
-            # /Applications/VMware\ Fusion.app/Contents/Library/vmware-vdiskmanager -r \
-            #                       ./disk2-link.vmdk -t 0 ./macos-disk.vmdk
+            # /Applications/VMware\ Fusion.app/Contents/Library/\
+            # vmware-vdiskmanager -r ./disk2-link.vmdk -t 0 ./macos-disk.vmdk
             cmd = [os.path.join(fusion_tools_path, 'vmware-vdiskmanager'),
-                                                                        '-r',
-                                                                        link + '.vmdk',
-                                                                        '-t',
-                                                                        str(disk_type),
-                                                                        vmdk]
-            task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                   '-r',
+                   link + '.vmdk',
+                   '-t',
+                   str(disk_type),
+                   vmdk]
+            task = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE)
             out, err = task.communicate()
             if task.returncode:
                 if not err:
@@ -258,12 +283,14 @@ def create_vmdk(output_dir, output_name, disk_id, disk_type, fusion_path, use_qe
         print colored('Hiding file extension', 'green')
         try:
             cmd = ['/usr/bin/SetFile', '-a', 'E', vmpath]
-            task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            task = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE)
             out, err = task.communicate()
         except err:
             print colored('Error: %s' % err.strip(), 'red')
 
     return vmpath
+
 
 def set_perms(path):
     '''Sets the permissions of given path to local user'''
@@ -272,6 +299,7 @@ def set_perms(path):
     for root, dirs, files in os.walk(path):
         for f in files:
             os.chown(os.path.join(path, f), int(uid), 20)
+
 
 def create_vmx(
                 vmpath,
@@ -382,6 +410,7 @@ def create_vmx(
             f.write('\nmacosguest.forceRecoveryModeInstall = "TRUE"')
     return vmx
 
+
 def generic_packer_template():
     '''Returns a baseline packer template'''
     d = {
@@ -402,11 +431,12 @@ def generic_packer_template():
     }
     return OrderedDict(d)
 
+
 def populate_packer_template(path, template, os_rev):
     '''Creates a packer template file'''
     if not os.path.exists(template):
         print colored('File not found; creating generic one: %s' % template,
-                            'yellow')
+                      'yellow')
         d = generic_packer_template()
     else:
         with open(template, 'r') as f:
@@ -419,6 +449,7 @@ def populate_packer_template(path, template, os_rev):
     with open(template, 'w') as f:
         json.dump(d, f, indent=4, separators=(',', ': '))
     set_perms(template)
+
 
 def create_empty_dmg(size):
     '''Create an empty dmg to be used in a netboot scenario'''
@@ -444,8 +475,9 @@ def create_empty_dmg(size):
            '0',
            '-gid',
            '80'
-          ]
-    task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+           ]
+    task = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
     out, err = task.communicate()
     if err:
         print colored(err, 'red')
@@ -454,14 +486,15 @@ def create_empty_dmg(size):
     if os.path.exists(temp_dmg):
         print colored('Converting temporary DMG: %s' % converted_dmg, 'green')
         cmd = ['/usr/bin/hdiutil',
-            'convert',
-            temp_dmg,
-            '-format',
-            'UDZO',
-            '-o',
-            converted_dmg
-            ]
-        task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+               'convert',
+               temp_dmg,
+               '-format',
+               'UDZO',
+               '-o',
+               converted_dmg
+               ]
+        task = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
         out, err = task.communicate()
         if err:
             print colored('Could not convert empty dmg', err)
@@ -470,9 +503,11 @@ def create_empty_dmg(size):
     shutil.rmtree(os.path.dirname(temp_dmg))
     return converted_dmg
 
+
 def main():
     '''Main method'''
-    parser = argparse.ArgumentParser(description='Create and monitor VM from source DMG.')
+    parser = argparse.ArgumentParser(
+                        description='Create and monitor VM from source DMG.')
     parser.add_argument('-i', '--input', help='/path/to/dmg')
     parser.add_argument('-o', '--output', help='/path/to/output/dir')
     parser.add_argument('-n', '--name', help='Use a custom name')
@@ -480,7 +515,8 @@ def main():
                         type=int)
     parser.add_argument('-m', '--mem-size', help='Memory Size in MB',
                         type=int)
-    parser.add_argument('-s', '--serial', help='Custom Serial number', nargs='?',
+    parser.add_argument('-s', '--serial',
+                        help='Custom Serial number', nargs='?',
                         const='random', default=None)
     parser.add_argument('-t', '--template', help='Use a template')
     parser.add_argument('-e', '--esx',
@@ -488,7 +524,8 @@ def main():
                         action='store_true')
     parser.add_argument('-p', '--packer', help='Populate a packer template')
     parser.add_argument('-d', help='Path to CD/DVD ISO path ', default=None)
-    parser.add_argument('--hw-model', help='Custom hardware model', default=None)
+    parser.add_argument('--hw-model',
+                        help='Custom hardware model', default=None)
     parser.add_argument('--start', nargs='?', const=randint(1000, 9999),
                         help='Start monitoring of VM')
     parser.add_argument('--stop', help='Stop monitoring of VM')
@@ -501,10 +538,14 @@ def main():
                         action='store_true')
     args = parser.parse_args()
 
-    if os.getuid() != 0 and not args.stop and not args.reset and not args.use_qemu:
-        print colored('If you don\'t want to be prompted in the GUI for an ' \
-                        'admin password, run this script with sudo rights\n',
-                        'yellow')
+    if (os.getuid() != 0
+            and not args.stop
+            and not args.reset
+            and not args.use_qemu):
+        print colored('If you don\'t want to be prompted in the GUI for '
+                      'an admin password, run this script with '
+                      'sudo rights\n',
+                      'yellow')
 
     # Instantiate variables
     fusion_path = ''
@@ -657,7 +698,9 @@ def main():
                 if not os.path.exists(cache_dir):
                     os.mkdir(cache_dir)
                 dmg_name = os.path.basename(source_dmg)
-                (source_dmg, downloaded, cached) = get_source_dmg(source_dmg, dmg_name, cache_dir)
+                (source_dmg, downloaded, cached) = get_source_dmg(source_dmg,
+                                                                  dmg_name,
+                                                                  cache_dir)
         if d.get('output_dir'):
             output_dir = os.path.expanduser(d['output_dir'])
         if d.get('output_name'):
@@ -701,7 +744,8 @@ def main():
     if os_rev <= 8:
         serial_format = True
     if (os_rev < 7) or (os_rev > 13):
-        print colored('This macOS version is not supported: %s' % os_vers, 'red')
+        print colored('This macOS version is not supported: %s' % os_vers,
+                      'red')
         unmount_dmg(mount_point)
         sys.exit(1)
     # 10.7 (darwin11-64) requires virtualHW.version 8
@@ -717,17 +761,18 @@ def main():
         hw_check = os_rev + 1
 
     if hw_check > hw_version:
-        print colored('VMware hardware version %d does not officially ' \
-                      'support 10.%d' % (hw_version, os_rev), 'yellow')
+        print colored('VMware hardware version %d does not officially '
+                      'support 10.%d' % (hw_version, os_rev),
+                      'yellow')
 
-    #if os_rev == 12:
+    # if os_rev == 12:
     #    guest_os = 'darwin%d-64' % (os_rev + 3)
-    #else:
+    # else:
     #    guest_os = 'darwin%d-64' % (os_rev + 4)
 
     # Need to drop down to darwin16-64 for now on macOS 10.13
     if os_rev >= 13:
-        os_rev = os_rev -1
+        os_rev = os_rev - 1
     guest_os = 'darwin%d-64' % (os_rev + 4)
 
     if volume_kind == 'apfs':
@@ -763,11 +808,13 @@ def main():
                     recovery
                 )
     unmount_dmg(disk_id)
+
     if os.getuid() == 0:
         set_perms(vmpath)
 
     if packer_template:
-        print colored('Generating packer template: %s' % packer_template, 'green')
+        print colored('Generating packer template: %s' % packer_template,
+                      'green')
         populate_packer_template(vmpath, packer_template, os_rev)
 
     if monitor_vm:
@@ -788,6 +835,7 @@ def main():
             shutil.move(source_dmg, cache_dir)
             if os.getuid() == 0:
                 set_perms(cache_dir)
+
 
 if __name__ == '__main__':
     main()
