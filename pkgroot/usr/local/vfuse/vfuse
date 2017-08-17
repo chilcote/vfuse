@@ -123,17 +123,20 @@ def mount_dmg(dmg, disk_id = False):
                                     '-nobrowse', '-noverify', '-noautoopen',
                                     dmg, '-plist'])
         d = plistlib.readPlistFromString(output)
+        ignored_vols = ('Preboot', 'Recovery', 'VM')
         for i in d['system-entities']:
-            if 'mount-point' in str(i):
-                mount_point = i['mount-point']
-                mountpoint_dev_entry = i['dev-entry']
-            if 'GUID_partition_scheme' in str(i):
+            if i.get('mount-point', None):
+		if i['mount-point'].split('/')[-1] not in ignored_vols:
+                    mount_point = i['mount-point']
+                    volume_kind = i['volume-kind']
+                    mountpoint_dev_entry = i['dev-entry']
+            if i['content-hint'] == 'GUID_partition_scheme':
                 disk_id = i['dev-entry']
         if not disk_id:
             print colored('Warning: your DMG does not have a partition '\
                             'scheme, and vfuse may fail', 'yellow')
             disk_id = mountpoint_dev_entry
-        return mount_point, disk_id
+        return mount_point, disk_id, volume_kind
     except subprocess.CalledProcessError as err:
         print colored('Cannot mount dmg: %s' % dmg, 'red')
         sys.exit(1)
@@ -150,14 +153,14 @@ def get_osvers(mount_point):
         unmount_dmg(mount_point)
         sys.exit(1)
 
-def unmount_dmg(disk_id):
-    '''Unmounts Base OS DMG'''
-    print colored('Unmounting Base OS DMG', 'green')
-    task = subprocess.Popen(['/usr/bin/hdiutil', 'detach', '-force', disk_id],
+def unmount_dmg(pathname):
+    '''Unmounts a DMG'''
+    print colored('Unmounting %s' % pathname, 'green')
+    task = subprocess.Popen(['/usr/bin/hdiutil', 'detach', '-force', pathname],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = task.communicate()
     if err:
-        print colored('Could not detach:\t%s' % disk_id, 'red')
+        print colored('Could not detach:\t%s' % pathname, 'red')
 
 def create_vmdk(output_dir, output_name, disk_id, disk_type, fusion_path, use_qemu, qemu_path, source_dmg):
     '''Converts Base OS DMG to VMDK'''
@@ -690,7 +693,7 @@ def main():
         if d.get('recovery'):
             recovery = d['recovery']
 
-    mount_point, disk_id = mount_dmg(source_dmg)
+    mount_point, disk_id, volume_kind = mount_dmg(source_dmg)
 
     os_vers = get_osvers(mount_point) if not netboot else netboot_osvers
     print colored('macOS version is %s' % os_vers, 'green')
@@ -726,6 +729,9 @@ def main():
     if os_rev >= 13:
         os_rev = os_rev -1
     guest_os = 'darwin%d-64' % (os_rev + 4)
+
+    if volume_kind == 'apfs':
+        unmount_dmg(mount_point)
 
     vmpath = create_vmdk(
                         output_dir,
