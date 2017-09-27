@@ -553,7 +553,7 @@ def main():
     output_dir = os.getcwd()
     output_name = 'macos-vm'
     cached = False
-    hw_version = 12
+    hw_version = 14
     mem_size = 2048
     disk_type = 0
     dvdiso = None
@@ -754,8 +754,8 @@ def main():
     # 10.10 (darwin14-64) requires virtualHW.version 11
     # 10.11 (darwin15-64) requires virtualHW.version 12
     # 10.12 (darwin16-64) requires virtualHW.version 12 # What?? Apparently so.
-    # 10.13 (darwin17-64) requires virtualHW.version 12 # What?? Apparently so.
-    if os_rev >= 12:
+    # 10.13 (darwin17-64) requires virtualHW.version 14
+    if os_rev == 12:
         hw_check = os_rev
     else:
         hw_check = os_rev + 1
@@ -765,14 +765,10 @@ def main():
                       'support 10.%d' % (hw_version, os_rev),
                       'yellow')
 
-    # if os_rev == 12:
-    #    guest_os = 'darwin%d-64' % (os_rev + 3)
-    # else:
-    #    guest_os = 'darwin%d-64' % (os_rev + 4)
-
-    # Need to drop down to darwin16-64 for now on macOS 10.13
-    if os_rev >= 13:
-        os_rev = os_rev - 1
+    # Update this block when 10.14 betas release
+    # Temporarily drops the guest_os down by one
+    # if os_rev >= 13:
+    #     os_rev = os_rev - 1
     guest_os = 'darwin%d-64' % (os_rev + 4)
 
     if volume_kind == 'apfs':
