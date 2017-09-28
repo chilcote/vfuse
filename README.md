@@ -10,9 +10,9 @@ My thanks to [Rich Trouton](https://twitter.com/rtrouton) for testing this scrip
 Requirements
 ------------
 
-+ VMware Fusion 8.x Professional
++ VMware Fusion 10.x Professional
 + OS X 10.9.5+
-+ A never-booted image created with your [favorite](https://github.com/chilcote/stew) [image creation tool](https://github.com/magervalp/autodmg).
++ A never-booted image created with your [image creation tool](https://github.com/magervalp/autodmg).
 + (optional) [Packer](https://packer.io) 0.7.2 (or above) for building a vagrant box.
 + (optional) [qemu-img](https://en.wikibooks.org/wiki/QEMU/Installing_QEMU)
 
