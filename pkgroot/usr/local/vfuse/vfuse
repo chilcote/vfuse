@@ -137,7 +137,7 @@ def mount_dmg(dmg, disk_id=False):
         ignored_vols = ('Preboot', 'Recovery', 'VM')
         for i in d['system-entities']:
             if i.get('mount-point', None):
-                if i['mount-point'].split('/')[-1] not in ignored_vols:
+                if i['mount-point'].split('/')[-1].split()[0] not in ignored_vols:
                     mount_point = i['mount-point']
                     volume_kind = i['volume-kind']
                     mountpoint_dev_entry = i['dev-entry']
