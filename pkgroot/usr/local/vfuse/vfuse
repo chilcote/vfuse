@@ -536,7 +536,14 @@ def main():
     parser.add_argument('--recovery',
                         help='Boot into Recovery HD',
                         action='store_true')
+    parser.add_argument('--version',
+                        help='Print version of vfuse and exit',
+                        action='store_true')
     args = parser.parse_args()
+
+    if args.version:
+        print __version__
+        sys.exit(0)
 
     if (os.getuid() != 0
             and not args.stop
