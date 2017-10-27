@@ -37,6 +37,7 @@ import json
 import argparse
 import glob
 import string
+import hashlib
 from random import randint, sample
 from collections import OrderedDict
 from SystemConfiguration import SCDynamicStoreCopyConsoleUser
@@ -94,11 +95,46 @@ def import_template(template):
     return d
 
 
-def get_source_dmg(url, dmg, cache_dir,
-                   source_dmg=None, downloaded=False, cached=False):
+def get_sha256(filename, block_size=65536):
+  '''Returns the sha256 of the filename'''
+  if not os.path.exists(filename):
+    return None
+  sha256 = hashlib.sha256()
+  print colored('Generating checksum for %s' % os.path.basename(filename),
+                'green')
+  with open(filename, 'rb') as f:
+      for block in iter(lambda: f.read(block_size), b''):
+          sha256.update(block)
+  return sha256.hexdigest()
+
+
+def verify_checksum(i, checksum):
+    if checksum:
+        return True if i == checksum else False
+
+
+def get_source_dmg(url,
+                   dmg,
+                   cache_dir,
+                   receipt,
+                   checksum,
+                   source_dmg=None,
+                   downloaded=False,
+                   cached=False,
+                   cached_checksum=None,
+                   generated_checksum=None
+                   ):
     '''Downloads Base OS DMG if URL defined by user
         Checks cache for existing Base OS image'''
-    if os.path.exists(os.path.join(cache_dir, dmg)):
+
+    if os.path.exists(receipt):
+        with open(receipt, 'r') as f:
+            d = json.load(f, object_pairs_hook=OrderedDict)
+            cached_checksum = d[dmg]
+
+    if (os.path.exists(os.path.join(cache_dir, dmg))
+            and (verify_checksum(cached_checksum,
+                checksum) if checksum else True)):
         print colored('%s exists in cache' % dmg, 'green')
         cached = True
         source_dmg = os.path.join(cache_dir, dmg)
@@ -111,12 +147,28 @@ def get_source_dmg(url, dmg, cache_dir,
             with open(source_dmg, 'wb') as f:
                 shutil.copyfileobj(req, f)
         except urllib2.URLError, e:
-            print colored('Download of %s failed with error %s' % (url, e))
+            print colored('Download of %s failed with error %s' % (url, e),
+                          'red')
             sys.exit(1)
         except IOError, e:
-            print colored('Could not write %s to disk' % source_dmg)
+            print colored('Could not write %s to disk' % source_dmg, 'red')
             sys.exit(1)
-    return source_dmg, downloaded, cached
+
+        if os.path.exists(source_dmg):
+            generated_checksum = get_sha256(source_dmg)
+            if not (verify_checksum(generated_checksum,
+                    checksum) if checksum else True):
+            #if not verify_checksum(generated_checksum, checksum):
+                print colored('Checksum mismatch!',
+                              'red')
+                print colored('Downloaded DMG: %s' % generated_checksum,
+                              'red')
+                print colored('Checksum from template: %s' % checksum,
+                              'red')
+                os.remove(source_dmg)
+                sys.exit(1)
+
+    return source_dmg, downloaded, cached, generated_checksum
 
 
 def mount_dmg(dmg, disk_id=False):
@@ -542,6 +594,8 @@ def main():
                         action='store_true')
     parser.add_argument('--snapshot-name',
                         help='Custom name for the initial snapshot')
+    parser.add_argument('-c', '--checksum',
+                        help='Generate checksum of a DMG')
     args = parser.parse_args()
 
     if (os.getuid() != 0
@@ -559,6 +613,8 @@ def main():
     output_dir = os.getcwd()
     output_name = 'macos-vm'
     cached = False
+    cache_dir = os.path.join(os.getenv('HOME'), '.vfuse')
+    checksum = None
     hw_version = 14
     mem_size = 2048
     disk_type = 0
@@ -589,7 +645,7 @@ def main():
     guest_os = ''
 
     if not args.input and not args.template and not args.start \
-            and not args.stop and not args.reset:
+            and not args.stop and not args.reset and not args.checksum:
         parser.print_help()
         sys.exit(1)
 
@@ -687,6 +743,12 @@ def main():
     if args.snapshot_name:
         snapshot_name = args.snapshot_name
 
+    if args.checksum:
+        source_dmg = os.path.expanduser(args.checksum)
+        checksum = get_sha256(source_dmg)
+        print colored('Checksum: %s' % checksum, 'green')
+        sys.exit(0)
+
     if args.template:
         # Use template-defined keys, otherwise use defaults defined above.
         d = import_template(args.template)
@@ -705,16 +767,26 @@ def main():
             connection_type = 'bridged'
         elif d.get('source_dmg'):
             source_dmg = os.path.expanduser(d['source_dmg'])
+
+        receipt = os.path.join(cache_dir,
+                               '%s.json' % os.path.basename(source_dmg)
+                               )
+
+        if d.get('checksum'):
+            checksum = d['checksum']
         if d.get('cache'):
             cached = d['cache']
             if 'http' in source_dmg and cached:
-                cache_dir = os.path.join(os.getenv('HOME'), '.vfuse')
                 if not os.path.exists(cache_dir):
                     os.mkdir(cache_dir)
                 dmg_name = os.path.basename(source_dmg)
-                (source_dmg, downloaded, cached) = get_source_dmg(source_dmg,
-                                                                  dmg_name,
-                                                                  cache_dir)
+                (source_dmg, downloaded, cached,
+                 generated_checksum) = get_source_dmg(source_dmg,
+                                                      dmg_name,
+                                                      cache_dir,
+                                                      receipt,
+                                                      checksum
+                                                      )
         if d.get('output_dir'):
             output_dir = os.path.expanduser(d['output_dir'])
         if d.get('output_name'):
@@ -863,6 +935,15 @@ def main():
     if downloaded:
         if not cached:
             print colored('Caching %s' % dmg_name, 'green')
+            print colored('Checksum: %s' % generated_checksum, 'green')
+            with open(receipt, 'w') as f:
+                json.dump({os.path.basename(source_dmg): generated_checksum},
+                          f,
+                          indent=4,
+                          separators=(',', ': ')
+                          )
+            if os.path.exists(os.path.join(cache_dir, os.path.basename(source_dmg))):
+                os.remove(os.path.join(cache_dir, os.path.basename(source_dmg)))
             shutil.move(source_dmg, cache_dir)
             if os.getuid() == 0:
                 set_perms(cache_dir)
