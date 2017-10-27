@@ -289,7 +289,7 @@ def create_vmdk(output_dir, output_name, disk_id, disk_type,
         except err:
             print colored('Error: %s' % err.strip(), 'red')
 
-    return vmpath
+    return vmpath, fusion_tools_path
 
 
 def set_perms(path):
@@ -537,14 +537,12 @@ def main():
     parser.add_argument('--recovery',
                         help='Boot into Recovery HD',
                         action='store_true')
-    parser.add_argument('--version',
-                        help='Print version of vfuse and exit',
+    parser.add_argument('--snapshot',
+                        help='Create initial snapshot',
                         action='store_true')
+    parser.add_argument('--snapshot-name',
+                        help='Custom name for the initial snapshot')
     args = parser.parse_args()
-
-    if args.version:
-        print __version__
-        sys.exit(0)
 
     if (os.getuid() != 0
             and not args.stop
@@ -580,6 +578,8 @@ def main():
     netboot_hdsize = '40'
     netboot_osvers = get_osvers('/')
     recovery = False
+    snapshot = False
+    snapshot_name = 'baseline'
 
     monitor_vm = False
     job_id = None
@@ -681,6 +681,12 @@ def main():
     if args.recovery:
         recovery = True
 
+    if args.snapshot:
+        snapshot = True
+
+    if args.snapshot_name:
+        snapshot_name = args.snapshot_name
+
     if args.template:
         # Use template-defined keys, otherwise use defaults defined above.
         d = import_template(args.template)
@@ -743,6 +749,10 @@ def main():
             qemu_path = d['qemu_path']
         if d.get('recovery'):
             recovery = d['recovery']
+        if d.get('snapshot'):
+            snapshot = d['snapshot']
+        if d.get('snapshot_name'):
+            snapshot_name = d['snapshot_name']
 
     mount_point, disk_id, volume_kind = mount_dmg(source_dmg)
 
@@ -782,16 +792,16 @@ def main():
     if volume_kind == 'apfs':
         unmount_dmg(mount_point)
 
-    vmpath = create_vmdk(
-                        output_dir,
-                        output_name,
-                        disk_id,
-                        disk_type,
-                        fusion_path,
-                        use_qemu,
-                        qemu_path,
-                        source_dmg
-                        )
+    vmpath, fusion_tools_path = create_vmdk(
+                                        output_dir,
+                                        output_name,
+                                        disk_id,
+                                        disk_type,
+                                        fusion_path,
+                                        use_qemu,
+                                        qemu_path,
+                                        source_dmg
+                                        )
 
     vmx = create_vmx(
                     vmpath,
@@ -812,6 +822,23 @@ def main():
                     recovery
                 )
     unmount_dmg(disk_id)
+
+    if snapshot:
+        print colored('Creating a "%s" snapshot' % snapshot_name, 'green')
+        cmd = [os.path.join(fusion_tools_path, 'vmrun'),
+               '-T',
+               'fusion',
+               'snapshot',
+               vmx,
+               snapshot_name
+               ]
+        task = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+        out, err = task.communicate()
+        if err:
+            print colored('Error: %s' % err.strip(), 'yellow')
+            print colored('There is a problem creating a snapshot',
+                          'yellow')
 
     if os.getuid() == 0:
         set_perms(vmpath)
