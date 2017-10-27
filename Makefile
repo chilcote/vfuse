@@ -14,7 +14,7 @@ help:
 ##  clean - Clean up temporary working directories
 clean:
 	rm -f ./vfuse*.{dmg,pkg}
-	rm -f ./pkgroot/usr/local/vfuse/*.pyc
+	rm -f ./pkgroot/usr/local/vfuse/bin/*.pyc
 
 ##  pkg - Create a package using pkgbuild
 pkg: clean
