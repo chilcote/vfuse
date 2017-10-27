@@ -8,7 +8,7 @@
 	<string>com.chilcote.vfused</string>
 	<key>ProgramArguments</key>
 	<array>
-		<string>/usr/local/vfuse/vfused.py</string>
+    <string>/usr/local/vfuse/bin/vfused.py</string>
 		<string>--monitor</string>
 	</array>
 	<key>RunAtLoad</key>
