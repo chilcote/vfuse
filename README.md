@@ -49,6 +49,9 @@ Usage
       --reset RESET         Reset monitored VM
       --use-qemu            Use qemu-img intead of the Fusion CLI tools
       --recovery            Boot into Recovery HD
+      --snapshot            Create initial snapshot
+      --snapshot-name SNAPSHOT_NAME
+                            Custom name for the initial snapshot
 
 Creating a VM
 -------------
