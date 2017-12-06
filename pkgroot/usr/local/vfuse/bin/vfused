@@ -49,7 +49,7 @@ class VMXMonitor(object):
     '''Monitoring a vmx file'''
 
     def __init__(self, 
-                plist = os.path.expanduser('~/Library/Preferences/com.chilcote.vfused.plist'),
+                plist = os.path.expanduser('~/Library/Preferences/com.github.vfuse.vfused.plist'),
                 vmrun = '/Applications/VMware Fusion.app/Contents/Library/vmrun'):
         self.plist = plist
         if not os.path.exists(self.plist):

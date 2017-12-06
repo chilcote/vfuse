@@ -5,10 +5,10 @@
 	<key>KeepAlive</key>
 	<true/>
 	<key>Label</key>
-	<string>com.chilcote.vfused</string>
+	<string>com.github.vfuse.vfused</string>
 	<key>ProgramArguments</key>
 	<array>
-    <string>/usr/local/vfuse/bin/vfused.py</string>
+    <string>/usr/local/vfuse/bin/vfused</string>
 		<string>--monitor</string>
 	</array>
 	<key>RunAtLoad</key>
