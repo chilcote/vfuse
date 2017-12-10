@@ -12,46 +12,51 @@ Requirements
 
 + VMware Fusion 10.x Professional
 + OS X 10.9.5+
-+ A never-booted image created with your [image creation tool](https://github.com/magervalp/autodmg).
-+ (optional) [Packer](https://packer.io) 0.7.2 (or above) for building a vagrant box.
++ A never-booted image created with [AutoDMG](https://github.com/magervalp/autodmg).
++ (optional) [Packer](https://packer.io) 1.1.1 (or above) for building a vagrant box.
 + (optional) [qemu-img](https://en.wikibooks.org/wiki/QEMU/Installing_QEMU)
 
 Usage
 -----
 
     usage: vfuse [-h] [-i INPUT] [-o OUTPUT] [-n NAME] [-w HW_VERSION]
-                 [-m MEM_SIZE] [-t TEMPLATE] [-e] [-p PACKER] [--start [START]]
-                 [--stop STOP] [--reset RESET] [--use-qemu] [--recovery]
+                [-m MEM_SIZE] [-s [SERIAL]] [-t TEMPLATE] [-e] [-p PACKER] [-d D]
+                [--hw-model HW_MODEL] [--start [START]] [--stop STOP]
+                [--reset RESET] [--use-qemu] [--recovery] [--snapshot]
+                [--snapshot-name SNAPSHOT_NAME] [-c CHECKSUM]
 
     Create and monitor VM from source DMG.
 
     optional arguments:
-      -h, --help            show this help message and exit
-      -i INPUT, --input INPUT
+    -h, --help            show this help message and exit
+    -i INPUT, --input INPUT
                             /path/to/dmg
-      -o OUTPUT, --output OUTPUT
+    -o OUTPUT, --output OUTPUT
                             /path/to/output/dir
-      -n NAME, --name NAME  Use a custom name
-      -w HW_VERSION, --hw-version HW_VERSION
+    -n NAME, --name NAME  Use a custom name
+    -w HW_VERSION, --hw-version HW_VERSION
                             VMware hardware version
-      -m MEM_SIZE, --mem-size MEM_SIZE
+    -m MEM_SIZE, --mem-size MEM_SIZE
                             Memory Size in MB
-      -s [SERIAL], --serial [SERIAL]
-                            Custom Serial Number
-      -t TEMPLATE, --template TEMPLATE
+    -s [SERIAL], --serial [SERIAL]
+                            Custom Serial number
+    -t TEMPLATE, --template TEMPLATE
                             Use a template
-      -e, --esx             Create pre-allocated ESX-type VMDK
-      -p PACKER, --packer PACKER
+    -e, --esx             Create pre-allocated ESX-type VMDK
+    -p PACKER, --packer PACKER
                             Populate a packer template
-      --hw-model HW_MODEL   Custom Hardware Model                           
-      --start [START]       Start monitoring of VM
-      --stop STOP           Stop monitoring of VM
-      --reset RESET         Reset monitored VM
-      --use-qemu            Use qemu-img intead of the Fusion CLI tools
-      --recovery            Boot into Recovery HD
-      --snapshot            Create initial snapshot
-      --snapshot-name SNAPSHOT_NAME
+    -d D                  Path to CD/DVD ISO path
+    --hw-model HW_MODEL   Custom hardware model
+    --start [START]       Start monitoring of VM
+    --stop STOP           Stop monitoring of VM
+    --reset RESET         Reset monitored VM
+    --use-qemu            Use qemu-img intead of the Fusion CLI tools
+    --recovery            Boot into Recovery HD
+    --snapshot            Create initial snapshot
+    --snapshot-name SNAPSHOT_NAME
                             Custom name for the initial snapshot
+    -c CHECKSUM, --checksum CHECKSUM
+                            Generate checksum of a DMG
 
 Creating a VM
 -------------
@@ -64,10 +69,15 @@ The only required argument is `-i` aka `--input`. Run thusly, it will create a v
 
 See the [wiki](https://github.com/chilcote/vfuse/wiki) for more on how to use `vfuse`.
 
+Monitoring a VM
+---------------
+
+If you wish to utilize `vfused` to monitor and manage VMs, create a separate pkg for the LaunchAgent in the extras folder. This is no longer included in the `vfuse` pkg since LaunchAgents are better left to config management anyway.
+
 Caveats
 -------
 
-`vfuse` is meant to be used with never-booted disk images created, for example, by [AutoDMG](https://github.com/magervalp/autodmg). That said, you should be able to use `vfuse` with a dmg created with Disk Utility. Be aware, however, that testing has shown that it is best if you use the "Disk Image from Folder" method rather than "Disk Image from (Select a Device)" in Disk Utility, as the latter may result in errors when converting the disk to a vmdk.
+`vfuse` is meant to be used with never-booted disk images created with [AutoDMG](https://github.com/magervalp/autodmg). That said, you should be able to use `vfuse` with a dmg created with Disk Utility. Be aware, however, that testing has shown that it is best if you use the "Disk Image from Folder" method rather than "Disk Image from (Select a Device)" in Disk Utility, as the latter may result in errors when converting the disk to a vmdk.
 
 License
 -------
