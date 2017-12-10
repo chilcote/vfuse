@@ -3,12 +3,12 @@
 This script takes a never-booted DMG and converts it to a VMware Fusion VM.
 
 Requirements:
-    VMware Fusion 7.x Professional
     OS X 10.9.5+
-    A never-booted image (i.e. created with AutoDMG)
+    VMware Fusion Pro
+    DMG created with AutoDMG
 '''
 ##############################################################################
-# Copyright 2016 Joseph Chilcote
+# Copyright 2016-Present Joseph Chilcote
 #
 #  Licensed under the Apache License, Version 2.0 (the "License"); you may not
 #  use this file except in compliance with the License. You may obtain a copy
@@ -24,7 +24,7 @@ Requirements:
 ##############################################################################
 
 __author__ = 'Joseph Chilcote (chilcote@gmail.com)'
-__version__ = '1.0.6'
+__version__ = '2.0.0'
 
 import os
 import sys
