@@ -5,6 +5,6 @@
 
 user=$(/usr/bin/stat -f '%u' /dev/console)
 [[ -z "$user" ]] && exit 0
-/bin/launchctl asuser ${user} /bin/launchctl load /Library/LaunchAgents/com.chilcote.vfused.plist
+/bin/launchctl asuser ${user} /bin/launchctl load /Library/LaunchAgents/com.github.vfuse.vfused.plist
 
 exit 0
