@@ -561,6 +561,8 @@ def main():
     '''Main method'''
     parser = argparse.ArgumentParser(
                         description='Create and monitor VM from source DMG.')
+    parser.add_argument('--version', action='store_true',
+                        help='show the version number')
     parser.add_argument('-i', '--input', help='/path/to/dmg')
     parser.add_argument('-o', '--output', help='/path/to/output/dir')
     parser.add_argument('-n', '--name', help='Use a custom name')
@@ -597,6 +599,10 @@ def main():
     parser.add_argument('-c', '--checksum',
                         help='Generate checksum of a DMG')
     args = parser.parse_args()
+
+    if args.version:
+        print __version__
+        exit(0)
 
     if (os.getuid() != 0
             and not args.stop
