@@ -1,7 +1,4 @@
-#!/bin/bash
-
-# fork of Tim Sutton's osx-vm-template script:
-# https://github.com/timsutton/osx-vm-templates/blob/master/scripts/vmware.sh
+#!/bin/sh
 
 # Globbing here: VMware Fusion >= 8.5.4 includes a second
 # 'darwinPre15.iso' for any OS X guests pre-10.11

@@ -1,7 +1,4 @@
-#!/bin/bash
-
-# fork of Tim Sutton's osx-vm-template script:
-# https://github.com/timsutton/osx-vm-templates/blob/master/scripts/puppet.sh
+#!/bin/sh
 
 # Install the specified version of Puppet and tools
 #
