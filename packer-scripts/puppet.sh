@@ -11,10 +11,18 @@
 # install function mostly borrowed dmg function from hashicorp/puppet-bootstrap,
 # except we just take an already-downloaded dmg
 
-install_dmg() {
-    local dmg_path="$1"
+if [[ "${PUPPET_VERSION}" == "none" && \
+      "${FACTER_VERSION}" == "none" && \
+      "${HIERA_VERSION}" == "none" && \
+      "${PUPPET_AGENT_VERSION}" == "none" ]]; then
+    exit
+fi
 
-    echo "Installing: ${dmg_path}"
+install_dmg() {
+    local name="$1"
+    local dmg_path="$2"
+
+    echo "Installing: ${name}"
 
     # Mount the DMG
     echo "-- Mounting DMG..."
@@ -31,25 +39,61 @@ install_dmg() {
 }
 
 get_dmg() {
-    local name="$1"
+    local recipe_name="$1"
     local version="$2"
-    curl -s -O "https://downloads.puppetlabs.com/mac/${name}-${version}.dmg"
-    echo "${name}-${version}.dmg"
+    local report_path=$(mktemp /tmp/autopkg-report-XXXX)
+
+    # Run AutoPkg setting VERSION, and saving the results as a plist
+    "${AUTOPKG}" run --report-plist "${report_path}" -k VERSION="${version}" "${recipe_name}" > \
+        "$(mktemp "/tmp/autopkg-runlog-${recipe_name}")"
+    /usr/libexec/PlistBuddy -c \
+        'Print :summary_results:url_downloader_summary_result:data_rows:0:download_path' \
+        "${report_path}"
 }
 
+# Default to installing the current version of Puppet - it's not 2013 anymore.
+PUPPET_VERSION=${PUPPET_VERSION:-none}
+FACTER_VERSION=${FACTER_VERSION:-none}
+HIERA_VERSION=${HIERA_VERSION:-none}
+PUPPET_AGENT_VERSION=${PUPPET_AGENT_VERSION:-latest}
 
-# Retrieve the installer DMGs
-PUPPET_DMG=$(get_dmg puppet "${PUPPET_VERSION}")
-FACTER_DMG=$(get_dmg facter "${FACTER_VERSION}")
-HIERA_DMG=$(get_dmg hiera "${HIERA_VERSION}")
+# Get AutoPkg
+AUTOPKG_DIR=$(mktemp -d /tmp/autopkg-XXXX)
+git clone https://github.com/autopkg/autopkg "$AUTOPKG_DIR"
+AUTOPKG="$AUTOPKG_DIR/Code/autopkg"
 
-# Install them
-install_dmg "${PUPPET_DMG}"
-install_dmg "${FACTER_DMG}"
-install_dmg "${HIERA_DMG}"
+# Add the recipes repo containing Puppet/Facter
+"${AUTOPKG}" repo-add recipes
 
-# Hide all users from the loginwindow with uid below 500, which will include the puppet user
-defaults write /Library/Preferences/com.apple.loginwindow Hide500Users -bool YES
+# Redirect AutoPkg cache to a temp location
+defaults write com.github.autopkg CACHE_DIR -string "$(mktemp -d /tmp/autopkg-cache-XXX)"
+
+if [ "${PUPPET_VERSION}" != "none" ]; then
+  # Hide all users from the loginwindow with uid below 500, which will include the puppet user
+  defaults write /Library/Preferences/com.apple.loginwindow Hide500Users -bool YES
+  PUPPET_DMG=$(get_dmg Puppet.download "${PUPPET_VERSION}")
+  install_dmg "Puppet" "${PUPPET_DMG}"
+fi
+
+if [ "${PUPPET_AGENT_VERSION}" != "none" ]; then
+  # Hide all users from the loginwindow with uid below 500, which will include the puppet user
+  defaults write /Library/Preferences/com.apple.loginwindow Hide500Users -bool YES
+  PUPPET_AGENT_DMG=$(get_dmg Puppet-Agent.download "${PUPPET_AGENT_VERSION}")
+  install_dmg "Puppet Agent" "${PUPPET_AGENT_DMG}"
+fi
+
+if [ "${FACTER_VERSION}" != "none" ]; then
+  FACTER_DMG=$(get_dmg Facter.download "${FACTER_VERSION}")
+  install_dmg "Facter" "${FACTER_DMG}"
+fi
+
+if [ "${HIERA_VERSION}" != "none" ]; then
+  HIERA_DMG=$(get_dmg Hiera.download "${HIERA_VERSION}")
+  install_dmg "Hiera" "${HIERA_DMG}"
+fi
+
 
 # Clean up
-rm -rf "${PUPPET_DMG}" "${FACTER_DMG}" "${HIERA_DMG}"
+rm -rf "${PUPPET_DMG}" "${FACTER_DMG}" "${HIERA_DMG}" "${PUPPET_AGENT_DMG}" "${AUTOPKG_DIR}" "~/Library/AutoPkg"
+
+defaults delete com.github.autopkg
