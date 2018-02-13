@@ -24,7 +24,7 @@ Requirements:
 ##############################################################################
 
 __author__ = 'Joseph Chilcote (chilcote@gmail.com)'
-__version__ = '2.0.0'
+__version__ = '2.0.1'
 
 import os
 import sys
@@ -75,8 +75,20 @@ def colored(text, color=None):
     return text
 
 
-def import_template(template):
+def import_template(template_name, current_dir, template_dir):
     '''Imports user-defined template'''
+    template = None
+    if not '.json' in template_name:
+        template_name += '.json'
+    for path in [current_dir, template_dir]:
+        for root, dirs, files in os.walk(path):
+            for f in files:
+                if template_name == f:
+                    template = os.path.join(root, f)
+    if not template:
+        print colored('Unable to find template: %s' % template_name, 'red')
+        exit(1)
+    print colored('Using template: %s' % template, 'green')
     try:
         with open(template) as f:
             try:
@@ -598,6 +610,9 @@ def main():
                         help='Custom name for the initial snapshot')
     parser.add_argument('-c', '--checksum',
                         help='Generate checksum of a DMG')
+    parser.add_argument('--list-templates',
+                        help='Return list of available templates',
+                        action='store_true')
     args = parser.parse_args()
 
     if args.version:
@@ -607,7 +622,8 @@ def main():
     if (os.getuid() != 0
             and not args.stop
             and not args.reset
-            and not args.use_qemu):
+            and not args.use_qemu
+            and not args.list_templates):
         print colored('If you don\'t want to be prompted in the GUI for '
                       'an admin password, run this script with '
                       'sudo rights\n',
@@ -642,6 +658,7 @@ def main():
     recovery = False
     snapshot = False
     snapshot_name = 'baseline'
+    template_dir = '/Library/CPE/bin/vfuse'
 
     monitor_vm = False
     job_id = None
@@ -649,6 +666,16 @@ def main():
     serial_format = False
     dmg_name = ''
     guest_os = ''
+
+    if args.list_templates:
+        templates = []
+        for path in [output_dir, template_dir]:
+            for root, dirs, files in os.walk(path):
+                for f in files:
+                    if f.endswith('.json'):
+                        templates.append(f)
+        print '\n'.join(sorted(set(templates)))
+        sys.exit(0)
 
     if not args.input and not args.template and not args.start \
             and not args.stop and not args.reset and not args.checksum:
@@ -757,7 +784,7 @@ def main():
 
     if args.template:
         # Use template-defined keys, otherwise use defaults defined above.
-        d = import_template(args.template)
+        d = import_template(args.template, output_dir, template_dir)
         if d.get('fusion_path'):
             fusion_path = os.path.expanduser(d['fusion_path'])
         if not d.get('source_dmg') and not d.get('netboot'):
