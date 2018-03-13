@@ -24,7 +24,7 @@ Requirements:
 ##############################################################################
 
 __author__ = 'Joseph Chilcote (chilcote@gmail.com)'
-__version__ = '2.0.1'
+__version__ = '2.0.2'
 
 import os
 import sys
@@ -81,11 +81,12 @@ def import_template(template_name, current_dir, template_dir):
     if not '.json' in template_name:
         template_name += '.json'
     for path in [template_dir, current_dir]:
-        files = [ f for f in os.listdir(path) if
-                os.path.isfile(os.path.join(path,f)) ]
-        for f in files:
-            if template_name == f:
-                template = os.path.join(path, f)
+        if os.path.exists(path):
+            files = [ f for f in os.listdir(path) if
+                    os.path.isfile(os.path.join(path,f)) ]
+            for f in files:
+                if template_name == f:
+                    template = os.path.join(path, f)
     if not template:
         print colored('Unable to find template: %s' % template_name, 'red')
         exit(1)
@@ -671,11 +672,12 @@ def main():
     if args.list_templates:
         templates = []
         for path in [output_dir, template_dir]:
-            files = [ f for f in os.listdir(path) if
-                    os.path.isfile(os.path.join(path,f)) ]
-            for f in files:
-                if f.lower().endswith('.json'):
-                    templates.append(f)
+            if os.path.exists(path):
+                files = [ f for f in os.listdir(path) if
+                        os.path.isfile(os.path.join(path,f)) ]
+                for f in files:
+                    if f.lower().endswith('.json'):
+                        templates.append(f)
         print '\n'.join(sorted(set(templates)))
         sys.exit(0)
 
