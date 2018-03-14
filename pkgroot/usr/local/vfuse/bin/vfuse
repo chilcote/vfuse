@@ -40,6 +40,7 @@ import tempfile
 import threading
 import time
 import urllib2
+from CoreFoundation import CFPreferencesCopyAppValue
 from collections import OrderedDict
 from random import randint, sample
 from SystemConfiguration import SCDynamicStoreCopyConsoleUser
@@ -705,7 +706,9 @@ def main():
     recovery = False
     snapshot = False
     snapshot_name = 'baseline'
-    template_dir = '/Library/CPE/bin/vfuse'
+    template_dir = CFPreferencesCopyAppValue('template_dir', 'com.github.vfuse')
+    if not template_dir:
+        template_dir = '/Library/CPE/bin/vfuse'
 
     monitor_vm = False
     job_id = None
