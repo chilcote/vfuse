@@ -898,6 +898,9 @@ def main():
             hw_model = d['hw_model']
         if d.get('serial_number'):
             serial_number = d['serial_number']
+            if serial_number == 'random':
+                s = string.lowercase + string.digits
+                serial_number = 'VM' + ''.join(sample(s, 10))
         if d.get('shared_folder'):
             shared_folder = os.path.expanduser(d['shared_folder'])
         if d.get('use_qemu'):
