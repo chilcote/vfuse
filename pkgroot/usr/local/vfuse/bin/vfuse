@@ -114,13 +114,16 @@ def import_template(template_name, current_dir, template_dir):
     template = None
     if not '.json' in template_name:
         template_name += '.json'
-    for path in [template_dir, current_dir]:
-        if os.path.exists(path):
-            files = [ f for f in os.listdir(path) if
-                    os.path.isfile(os.path.join(path,f)) ]
-            for f in files:
-                if template_name == f:
-                    template = os.path.join(path, f)
+    if os.path.exists(os.path.expanduser(template_name)):
+        template = template_name
+    else:
+        for path in [template_dir, current_dir]:
+            if os.path.exists(path):
+                files = [ f for f in os.listdir(path) if
+                        os.path.isfile(os.path.join(path,f)) ]
+                for f in files:
+                    if template_name == f:
+                        template = os.path.join(path, f)
     if not template:
         print colored('Unable to find template: %s' % template_name, 'red')
         exit(1)
