@@ -567,16 +567,27 @@ def populate_packer_template(path, template, os_rev):
     set_perms(template)
 
 
-def create_empty_dmg(size):
+def create_empty_dmg(size, netboot_tmp_dir=None):
     '''Create an empty dmg to be used in a netboot scenario'''
-    temp_dmg = os.path.join(tempfile.mkdtemp(), 'vfuse_tmp.dmg')
+    if not netboot_tmp_dir:
+        netboot_tmp_dir = tempfile.mkdtemp()
+    else:
+        netboot_tmp_dir = os.path.expanduser(netboot_tmp_dir)
+        if not os.path.exists(netboot_tmp_dir):
+            os.mkdir(netboot_tmp_dir)
+    temp_dmg = os.path.join(
+            os.path.expanduser(
+                netboot_tmp_dir
+                ), 'vfuse_tmp.dmg'
+            )
     converted_dmg = os.path.join(tempfile.mkdtemp(), 'vfuse_converted.dmg')
 
     print colored('Creating temporary DMG: %s' % temp_dmg, 'green')
-
+    spinner = Spinner()
+    spinner.start()
     cmd = ['/usr/bin/hdiutil',
            'create',
-           os.path.splitext(temp_dmg)[0],
+           os.path.splitext(os.path.expanduser(temp_dmg))[0],
            '-size',
            size + 'g',
            '-volname',
@@ -598,9 +609,11 @@ def create_empty_dmg(size):
     if err:
         print colored(err, 'red')
         exit(1)
+    spinner.stop()
 
     if os.path.exists(temp_dmg):
         print colored('Converting temporary DMG: %s' % converted_dmg, 'green')
+        spinner.start()
         cmd = ['/usr/bin/hdiutil',
                'convert',
                temp_dmg,
@@ -616,6 +629,7 @@ def create_empty_dmg(size):
             print colored('Could not convert empty dmg', err)
             shutil.rmtree(os.path.dirname(temp_dmg))
             exit(1)
+        spinner.stop()
     shutil.rmtree(os.path.dirname(temp_dmg))
     return converted_dmg
 
@@ -706,6 +720,7 @@ def main():
     netboot = False
     netboot_hdsize = '40'
     netboot_osvers = get_osvers('/')
+    netboot_tmp_dir = None
     recovery = False
     snapshot = False
     snapshot_name = 'baseline'
@@ -851,7 +866,9 @@ def main():
                 netboot_hdsize = str(d['netboot_hdsize'])
             if d.get('netboot_osvers'):
                 netboot_osvers = d['netboot_osvers']
-            source_dmg = create_empty_dmg(netboot_hdsize)
+            if d.get('netboot_tmp_dir'):
+                netboot_tmp_dir = d['netboot_tmp_dir']
+            source_dmg = create_empty_dmg(netboot_hdsize, netboot_tmp_dir)
             connection_type = 'bridged'
         elif d.get('source_dmg'):
             source_dmg = os.path.expanduser(d['source_dmg'])
