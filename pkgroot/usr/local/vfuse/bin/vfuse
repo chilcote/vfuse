@@ -941,7 +941,7 @@ def main():
     os_rev = int(os_vers.split('.')[1])
     if os_rev <= 8:
         serial_format = True
-    if (os_rev < 7) or (os_rev > 13):
+    if (os_rev < 7) or (os_rev > 14):
         print colored('This macOS version is not supported: %s' % os_vers,
                       'red')
         unmount_dmg(mount_point)
@@ -953,7 +953,7 @@ def main():
     # 10.11 (darwin15-64) requires virtualHW.version 12
     # 10.12 (darwin16-64) requires virtualHW.version 12 # What?? Apparently so.
     # 10.13 (darwin17-64) requires virtualHW.version 14
-    if os_rev == 12:
+    if os_rev == 12 or os_rev == 14: # TODO: remove after fusion adds 10.14 support
         hw_check = os_rev
     else:
         hw_check = os_rev + 1
@@ -965,8 +965,8 @@ def main():
 
     # Update this block when 10.14 betas release
     # Temporarily drops the guest_os down by one
-    # if os_rev >= 13:
-    #     os_rev = os_rev - 1
+    if os_rev >= 14:
+        os_rev = os_rev - 1
     guest_os = 'darwin%d-64' % (os_rev + 4)
 
     if volume_kind == 'apfs':
