@@ -24,7 +24,7 @@ Requirements:
 ##############################################################################
 
 __author__ = 'Joseph Chilcote (chilcote@gmail.com)'
-__version__ = '2.0.4'
+__version__ = '2.0.5'
 
 import argparse
 import glob
