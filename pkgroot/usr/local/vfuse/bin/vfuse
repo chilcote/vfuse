@@ -170,29 +170,44 @@ def verify_checksum(i, checksum):
 def get_source_dmg(url,
                    dmg,
                    cache_dir,
-                   receipt,
+                   cache_receipt,
                    checksum,
+                   template,
                    source_dmg=None,
                    downloaded=False,
                    cached=False,
                    cached_checksum=None,
+                   cached_dmg=None,
                    generated_checksum=None
                    ):
     '''Downloads Base OS DMG if URL defined by user
         Checks cache for existing Base OS image'''
 
-    if os.path.exists(receipt):
-        with open(receipt, 'r') as f:
-            d = json.load(f, object_pairs_hook=OrderedDict)
-            cached_checksum = d[dmg]
+    d = {}
+    if os.path.exists(cache_receipt):
+        with open(cache_receipt, 'r') as f:
+            d = json.load(f)
+            cached_dmg = d.get(template, None)
+            if cached_dmg and cached_dmg != dmg:
+                print colored('Deleting previously cached dmg: %s' % cached_dmg,
+                              'green')
+                if os.path.exists(os.path.join(cache_dir, cached_dmg)):
+                    os.remove(os.path.join(cache_dir, cached_dmg))
+            cached_checksum = d.get(dmg, None)
 
-    if (os.path.exists(os.path.join(cache_dir, dmg))
-            and (verify_checksum(cached_checksum,
-                checksum) if checksum else True)):
-        print colored('%s exists in cache' % dmg, 'green')
-        cached = True
-        source_dmg = os.path.join(cache_dir, dmg)
-    else:
+        if os.path.exists(os.path.join(cache_dir, dmg)):
+            if checksum and verify_checksum(cached_checksum, checksum):
+                print colored('%s exists in cache' % dmg, 'green')
+                source_dmg = os.path.join(cache_dir, dmg)
+                generated_checksum = cached_checksum
+                cached = True
+            else:
+                print colored('Deleting previously cached dmg: %s' % dmg,
+                              'green')
+                if os.path.exists(os.path.join(cache_dir, dmg)):
+                    os.remove(os.path.join(cache_dir, dmg))
+
+    if not cached:
         print colored('Downloading %s' % url, 'green')
         downloaded = True
         spinner = Spinner()
@@ -205,9 +220,11 @@ def get_source_dmg(url,
         except urllib2.URLError, e:
             print colored('Download of %s failed with error %s' % (url, e),
                           'red')
+            spinner.stop()
             sys.exit(1)
         except IOError, e:
             print colored('Could not write %s to disk' % source_dmg, 'red')
+            spinner.stop()
             sys.exit(1)
         spinner.stop()
 
@@ -215,17 +232,16 @@ def get_source_dmg(url,
             generated_checksum = get_sha256(source_dmg)
             if not (verify_checksum(generated_checksum,
                     checksum) if checksum else True):
-            #if not verify_checksum(generated_checksum, checksum):
-                print colored('Checksum mismatch!',
-                              'red')
-                print colored('Downloaded DMG: %s' % generated_checksum,
-                              'red')
-                print colored('Checksum from template: %s' % checksum,
-                              'red')
+                print colored('Checksum mismatch!', 'red')
+                print colored('Downloaded DMG: %s' % generated_checksum, 'red')
+                print colored('Checksum from template: %s' % checksum, 'red')
                 os.remove(source_dmg)
                 sys.exit(1)
 
-    return source_dmg, downloaded, cached, generated_checksum
+    d[template] = os.path.basename(source_dmg)
+    d[os.path.basename(source_dmg)] = generated_checksum
+
+    return source_dmg, downloaded, cached, generated_checksum, d
 
 
 def mount_dmg(dmg, disk_id=False):
@@ -701,6 +717,8 @@ def main():
     output_name = 'macos-vm'
     cached = False
     cache_dir = os.path.join(os.getenv('HOME'), '.vfuse')
+    cache_receipt = os.path.join(cache_dir, 'cache.receipt')
+    updated_cache = {}
     checksum = None
     hw_version = 14
     mem_size = 4096
@@ -873,10 +891,6 @@ def main():
         elif d.get('source_dmg'):
             source_dmg = os.path.expanduser(d['source_dmg'])
 
-        receipt = os.path.join(cache_dir,
-                               '%s.json' % os.path.basename(source_dmg)
-                               )
-
         if d.get('checksum'):
             checksum = d['checksum']
         if d.get('cache'):
@@ -885,12 +899,14 @@ def main():
                 if not os.path.exists(cache_dir):
                     os.mkdir(cache_dir)
                 dmg_name = os.path.basename(source_dmg)
-                (source_dmg, downloaded, cached,
-                 generated_checksum) = get_source_dmg(source_dmg,
+                template_name = args.template.split('.')[0]
+                (source_dmg, downloaded, cached, generated_checksum,
+                 updated_cache) = get_source_dmg(source_dmg,
                                                       dmg_name,
                                                       cache_dir,
-                                                      receipt,
-                                                      checksum
+                                                      cache_receipt,
+                                                      checksum,
+                                                      template_name
                                                       )
         if d.get('output_dir'):
             output_dir = os.path.expanduser(d['output_dir'])
@@ -1041,20 +1057,21 @@ def main():
             shutil.rmtree(os.path.dirname(source_dmg))
 
     if downloaded:
-        if not cached:
-            print colored('Caching %s' % dmg_name, 'green')
-            print colored('Checksum: %s' % generated_checksum, 'green')
-            with open(receipt, 'w') as f:
-                json.dump({os.path.basename(source_dmg): generated_checksum},
-                          f,
-                          indent=4,
-                          separators=(',', ': ')
-                          )
-            if os.path.exists(os.path.join(cache_dir, os.path.basename(source_dmg))):
-                os.remove(os.path.join(cache_dir, os.path.basename(source_dmg)))
-            shutil.move(source_dmg, cache_dir)
-            if os.getuid() == 0:
-                set_perms(cache_dir)
+        print colored('Caching %s' % dmg_name, 'green')
+        print colored('Checksum: %s' % generated_checksum, 'green')
+        if os.path.exists(os.path.join(cache_dir, os.path.basename(source_dmg))):
+            os.remove(os.path.join(cache_dir, os.path.basename(source_dmg)))
+        shutil.move(source_dmg, cache_dir)
+        if os.getuid() == 0:
+            set_perms(cache_dir)
+
+    if updated_cache:
+        print colored('Updating %s' % cache_receipt, 'green')
+        with open(cache_receipt, 'w') as f:
+            json.dump(updated_cache, f, indent=4, separators=(',', ': '))
+        if os.getuid() == 0:
+            set_perms(cache_receipt)
+
 
 
 if __name__ == '__main__':
