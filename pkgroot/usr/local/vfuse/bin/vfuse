@@ -893,6 +893,16 @@ def main():
 
         if d.get('checksum'):
             checksum = d['checksum']
+        if d.get('output_dir'):
+            output_dir = os.path.expanduser(d['output_dir'])
+        if d.get('output_name'):
+            output_name = d['output_name']
+
+        output_vmpath = os.path.join(output_dir, output_name + '.vmwarevm')
+        if os.path.exists(output_vmpath):
+            print colored('VMware Fusion VM already exists: %s' % output_vmpath, 'red')
+            sys.exit(1)
+
         if d.get('cache'):
             cached = d['cache']
             if 'http' in source_dmg and cached:
@@ -908,10 +918,6 @@ def main():
                                                       checksum,
                                                       template_name
                                                       )
-        if d.get('output_dir'):
-            output_dir = os.path.expanduser(d['output_dir'])
-        if d.get('output_name'):
-            output_name = d['output_name']
         if d.get('hw_version'):
             hw_version = int(d['hw_version'])
         if d.get('mem_size'):
