@@ -236,6 +236,7 @@ def get_source_dmg(url,
                 print colored('Downloaded DMG: %s' % generated_checksum, 'red')
                 print colored('Checksum from template: %s' % checksum, 'red')
                 os.remove(source_dmg)
+                spinner.stop()
                 sys.exit(1)
 
     d[template] = os.path.basename(source_dmg)
@@ -327,11 +328,13 @@ def create_vmdk(output_dir, output_name, disk_id, disk_type,
                 print colored('There is a problem with your DMG, '
                               'please try again',
                               'red')
+                spinner.stop()
                 sys.exit(1)
         except OSError as e:
             err = 'Failed to execute %s: %s' % (cmd[0], e)
             print colored('Error: %s' % err, 'red')
             shutil.rmtree(vmpath)
+            spinner.stop()
             sys.exit(1)
         spinner.stop()
     else:
@@ -376,6 +379,7 @@ def create_vmdk(output_dir, output_name, disk_id, disk_type,
                 print colored('There is a problem with your DMG; '
                               'please re-create it and try again',
                               'red')
+                spinner.stop()
                 unmount_dmg(disk_id)
                 sys.exit(1)
 
@@ -400,12 +404,14 @@ def create_vmdk(output_dir, output_name, disk_id, disk_type,
             print colored('Error: %s' % err, 'red')
             unmount_dmg(disk_id)
             shutil.rmtree(vmpath)
+            spinner.stop()
             sys.exit(1)
 
         except VdiskManagerError, e:
             print colored('Error: %s' % e, 'red')
             unmount_dmg(disk_id)
             shutil.rmtree(vmpath)
+            spinner.stop()
             sys.exit(1)
 
         spinner.stop()
@@ -624,6 +630,7 @@ def create_empty_dmg(size, netboot_tmp_dir=None):
     out, err = task.communicate()
     if err:
         print colored(err, 'red')
+        spinner.stop()
         exit(1)
     spinner.stop()
 
@@ -644,6 +651,7 @@ def create_empty_dmg(size, netboot_tmp_dir=None):
         if err:
             print colored('Could not convert empty dmg', err)
             shutil.rmtree(os.path.dirname(temp_dmg))
+            spinner.stop()
             exit(1)
         spinner.stop()
     shutil.rmtree(os.path.dirname(temp_dmg))
