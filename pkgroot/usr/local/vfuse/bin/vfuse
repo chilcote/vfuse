@@ -311,6 +311,23 @@ def create_vmdk(output_dir, output_name, disk_id, disk_type,
         sys.exit(1)
     os.mkdir(vmpath)
 
+    if not fusion_path:
+        cmd = ['/usr/bin/mdfind',
+                'kMDItemCFBundleIdentifier == com.vmware.fusion']
+        fusion_path = sorted(
+            subprocess.check_output(cmd).strip().split('\n'))[0]
+
+        if not fusion_path:
+            try:
+                fusion_path = glob.glob(
+                    '/Applications/VMware Fusion*.app')[0]
+            except IndexError:
+                print colored('Error: VMware Fusion.app not found', 'red')
+                unmount_dmg(disk_id)
+                sys.exit(1)
+
+    fusion_tools_path = os.path.join(fusion_path, 'Contents/Library')
+
     vmdk = os.path.join(vmpath, output_name + '.vmdk')
 
     if use_qemu:
@@ -338,25 +355,8 @@ def create_vmdk(output_dir, output_name, disk_id, disk_type,
             sys.exit(1)
         spinner.stop()
     else:
-        link = os.path.join(vmpath, os.path.basename(disk_id) + '-link')
-
-        if not fusion_path:
-            cmd = ['/usr/bin/mdfind',
-                   'kMDItemCFBundleIdentifier == com.vmware.fusion']
-            fusion_path = sorted(
-                subprocess.check_output(cmd).strip().split('\n'))[0]
-
-            if not fusion_path:
-                try:
-                    fusion_path = glob.glob(
-                        '/Applications/VMware Fusion*.app')[0]
-                except IndexError:
-                    print colored('Error: VMware Fusion.app not found', 'red')
-                    unmount_dmg(disk_id)
-                    sys.exit(1)
-
         print colored('Using VMware Fusion path: %s' % fusion_path, 'green')
-        fusion_tools_path = os.path.join(fusion_path, 'Contents/Library')
+        link = os.path.join(vmpath, os.path.basename(disk_id) + '-link')
 
         print colored('Converting DMG to VMDK', 'green')
         spinner = Spinner()
