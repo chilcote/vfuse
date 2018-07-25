@@ -783,13 +783,12 @@ def main():
 
     if args.list_cache:
         cached_dmgs = []
-        for path in [cache_dir]:
-            if os.path.exists(path):
-                files = [ f for f in os.listdir(path) if
-                        os.path.isfile(os.path.join(path,f)) ]
-                for f in files:
-                    if f.lower().endswith('.dmg'):
-                        cached_dmgs.append(f)
+        if os.path.exists(cache_dir):
+            files = [ f for f in os.listdir(cache_dir) if
+                    os.path.isfile(os.path.join(cache_dir,f)) ]
+            for f in files:
+                if f.lower().endswith('.dmg'):
+                    cached_dmgs.append(f)
         if cached_dmgs:
             print '\n'.join(sorted(set(cached_dmgs)))
         else:
@@ -797,14 +796,17 @@ def main():
         sys.exit(0)
 
     if args.clear_cache:
-        for path in [cache_dir]:
-            if os.path.exists(path):
-                files = [ f for f in os.listdir(path) if
-                        os.path.isfile(os.path.join(path,f)) ]
-                for f in files:
-                    if f.lower().endswith('.dmg'):
-                        print colored('Removing %s' % f, 'yellow')
-                        os.remove(os.path.join(cache_dir, f))
+        if os.path.exists(cache_dir):
+            files = [ f for f in os.listdir(cache_dir) if
+                    os.path.isfile(os.path.join(cache_dir,f)) ]
+            for f in files:
+                if f.lower().endswith('.dmg'):
+                    print colored('Removing %s' % f, 'yellow')
+                    os.remove(os.path.join(cache_dir, f))
+        with open(cache_receipt, 'w') as f:
+            json.dump({}, f, indent=4, separators=(',', ': '))
+        if os.getuid() == 0:
+            set_perms(cache_receipt)
         sys.exit(0)
 
     if not args.input and not args.template and not args.start \
