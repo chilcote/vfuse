@@ -702,6 +702,12 @@ def main():
     parser.add_argument('--list-templates',
                         help='Return list of available templates',
                         action='store_true')
+    parser.add_argument('--list-cache',
+                        help='Return list of cached disk images',
+                        action='store_true')
+    parser.add_argument('--clear-cache',
+                        help='Clear cached disk images',
+                        action='store_true')
     args = parser.parse_args()
 
     if args.version:
@@ -712,7 +718,9 @@ def main():
             and not args.stop
             and not args.reset
             and not args.use_qemu
-            and not args.list_templates):
+            and not args.list_templates
+            and not args.list_cache
+            and not args.clear_cache):
         print colored('If you don\'t want to be prompted in the GUI for '
                       'an admin password, run this script with '
                       'sudo rights\n',
@@ -771,6 +779,32 @@ def main():
                     if f.lower().endswith('.json'):
                         templates.append(f)
         print '\n'.join(sorted(set(templates)))
+        sys.exit(0)
+
+    if args.list_cache:
+        cached_dmgs = []
+        for path in [cache_dir]:
+            if os.path.exists(path):
+                files = [ f for f in os.listdir(path) if
+                        os.path.isfile(os.path.join(path,f)) ]
+                for f in files:
+                    if f.lower().endswith('.dmg'):
+                        cached_dmgs.append(f)
+        if cached_dmgs:
+            print '\n'.join(sorted(set(cached_dmgs)))
+        else:
+            print colored('No cached disk images found.', 'green')
+        sys.exit(0)
+
+    if args.clear_cache:
+        for path in [cache_dir]:
+            if os.path.exists(path):
+                files = [ f for f in os.listdir(path) if
+                        os.path.isfile(os.path.join(path,f)) ]
+                for f in files:
+                    if f.lower().endswith('.dmg'):
+                        print colored('Removing %s' % f, 'yellow')
+                        os.remove(os.path.join(cache_dir, f))
         sys.exit(0)
 
     if not args.input and not args.template and not args.start \
