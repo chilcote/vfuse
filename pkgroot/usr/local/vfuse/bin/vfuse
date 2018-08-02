@@ -919,7 +919,7 @@ def main():
         d = import_template(args.template, output_dir, template_dir)
         if d.get('fusion_path'):
             fusion_path = os.path.expanduser(d['fusion_path'])
-        if not d.get('source_dmg') and not d.get('netboot'):
+        if not d.get('source_dmg') and not d.get('netboot') and not source_dmg:
             parser.print_help()
             sys.exit(1)
         if d.get('netboot'):
