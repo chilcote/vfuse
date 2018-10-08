@@ -687,8 +687,11 @@ def main():
     parser.add_argument('--stop', help='Stop monitoring of VM')
     parser.add_argument('--reset', help='Reset monitored VM')
     parser.add_argument('--use-qemu',
-                        help='Use qemu-img intead of the Fusion CLI tools',
-                        action='store_true')
+                        help='Use qemu-img intead of the Fusion CLI tools [/path/to/qemu-img]',
+                        default=False,
+                        const='/usr/local/bin/qemu-img',
+                        nargs='?',
+                        action='store')
     parser.add_argument('--recovery',
                         help='Boot into Recovery HD',
                         action='store_true')
@@ -898,6 +901,8 @@ def main():
 
     if args.use_qemu:
         use_qemu = True
+        if os.path.exists(args.use_qemu):
+            qemu_path = args.use_qemu
 
     if args.recovery:
         recovery = True
