@@ -65,7 +65,7 @@ Running `vfuse` does not necessarily require sudo rights, but if you don't want 
 
 The only required argument is `-i` aka `--input`. Run thusly, it will create a vm called `macos-vm.vmwarevm` in the current working directory:
 
-    /usr/local/vfuse/vfuse -i /path/to/dmg
+    /usr/local/vfuse/bin/vfuse -i /path/to/dmg
 
 See the [wiki](https://github.com/chilcote/vfuse/wiki) for more on how to use `vfuse`.
 
