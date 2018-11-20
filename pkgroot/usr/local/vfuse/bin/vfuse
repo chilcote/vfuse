@@ -740,7 +740,7 @@ def main():
     cache_receipt = os.path.join(cache_dir, 'cache.receipt')
     updated_cache = {}
     checksum = None
-    hw_version = 14
+    hw_version = 16
     mem_size = 4096
     disk_type = 0
     dvdiso = None
@@ -1031,8 +1031,11 @@ def main():
     # 10.11 (darwin15-64) requires virtualHW.version 12
     # 10.12 (darwin16-64) requires virtualHW.version 12 # What?? Apparently so.
     # 10.13 (darwin17-64) requires virtualHW.version 14
-    if os_rev == 12 or os_rev == 14: # TODO: remove after fusion adds 10.14 support
+    # 10.14 (darwin18-64) requires virtualHW.version 16 # yer killing me, VMware
+    if os_rev == 12:
         hw_check = os_rev
+    elif os_rev == 14:
+        hw_check = os_rev + 2
     else:
         hw_check = os_rev + 1
 
@@ -1041,10 +1044,10 @@ def main():
                       'support 10.%d' % (hw_version, os_rev),
                       'yellow')
 
-    # Update this block when 10.14 betas release
     # Temporarily drops the guest_os down by one
-    if os_rev >= 14:
-        os_rev = os_rev - 1
+    # Uncomment these lines during macOS beta season
+    # if os_rev >= 14:
+    #     os_rev = os_rev - 1
     guest_os = 'darwin%d-64' % (os_rev + 4)
 
     if volume_kind == 'apfs':
