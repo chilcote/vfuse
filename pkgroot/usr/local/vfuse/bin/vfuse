@@ -39,13 +39,13 @@ import tempfile
 import threading
 import time
 from collections import OrderedDict
-from random import randint, sample
+from random import sample
 
 from CoreFoundation import CFPreferencesCopyAppValue
 from SystemConfiguration import SCDynamicStoreCopyConsoleUser
 
 try:
-    from plistlib import (load as readPlist, loads as readPlistFromString)
+    from plistlib import load as readPlist, loads as readPlistFromString
 except ImportError:
     from plistlib import readPlist, readPlistFromString
 
@@ -55,10 +55,8 @@ try:
 except ImportError:
     from urllib2 import urlopen, HTTPError
 
-try:
-    from vfused import VMXMonitor
-except ImportError:
-    pass
+
+__version__ = "2.0.9"
 
 
 class Error(Exception):
@@ -147,9 +145,9 @@ def import_template(template_name, current_dir, template_dir):
             try:
                 d = json.load(f)
             except ValueError as err:
-                print(colored(
-                    "Unable to parse %s\n" "Error: %s" % (template, err), "red"
-                ))
+                print(
+                    colored("Unable to parse %s\n" "Error: %s" % (template, err), "red")
+                )
                 sys.exit(1)
     except NameError as err:
         print(colored("%s; bailing script." % err, "red"))
@@ -203,9 +201,9 @@ def get_source_dmg(
             d = json.load(f)
             cached_dmg = d.get(template, None)
             if cached_dmg and cached_dmg != dmg:
-                print(colored(
-                    "Deleting previously cached dmg: %s" % cached_dmg, "green"
-                ))
+                print(
+                    colored("Deleting previously cached dmg: %s" % cached_dmg, "green")
+                )
                 if os.path.exists(os.path.join(cache_dir, cached_dmg)):
                     os.remove(os.path.join(cache_dir, cached_dmg))
             cached_checksum = d.get(dmg, None)
@@ -289,11 +287,13 @@ def mount_dmg(dmg, disk_id=False):
             if i["content-hint"] == "GUID_partition_scheme":
                 disk_id = i["dev-entry"]
         if not disk_id:
-            print(colored(
-                "Warning: your DMG does not have a partition "
-                "scheme, and vfuse may fail",
-                "yellow",
-            ))
+            print(
+                colored(
+                    "Warning: your DMG does not have a partition "
+                    "scheme, and vfuse may fail",
+                    "yellow",
+                )
+            )
             disk_id = mountpoint_dev_entry
         return mount_point, disk_id, volume_kind
     except subprocess.CalledProcessError:
@@ -303,9 +303,11 @@ def mount_dmg(dmg, disk_id=False):
 
 def get_osvers(mount_point):
     """Returns the OS Version of the mounted system DMG"""
-    sysvers_plist = os.path.join(mount_point, "System/Library/CoreServices/SystemVersion.plist")
+    sysvers_plist = os.path.join(
+        mount_point, "System/Library/CoreServices/SystemVersion.plist"
+    )
     try:
-        with open(sysvers_plist, 'rb') as f:
+        with open(sysvers_plist, "rb") as f:
             d = readPlist(f)
         return d["ProductVersion"]
     except IOError as err:
@@ -371,9 +373,11 @@ def create_vmdk(
             out, err = task.communicate()
             if err:
                 print(colored("Error: %s" % err.strip(), "red"))
-                print(colored(
-                    "There is a problem with your DMG, " "please try again", "red"
-                ))
+                print(
+                    colored(
+                        "There is a problem with your DMG, " "please try again", "red"
+                    )
+                )
                 spinner.stop()
                 sys.exit(1)
         except OSError as e:
@@ -406,11 +410,13 @@ def create_vmdk(
             out, err = task.communicate()
             if err:
                 print(colored("Error: %s" % err.strip(), "red"))
-                print(colored(
-                    "There is a problem with your DMG; "
-                    "please re-create it and try again",
-                    "red",
-                ))
+                print(
+                    colored(
+                        "There is a problem with your DMG; "
+                        "please re-create it and try again",
+                        "red",
+                    )
+                )
                 spinner.stop()
                 unmount_dmg(disk_id)
                 sys.exit(1)
@@ -687,9 +693,7 @@ def create_empty_dmg(size, netboot_tmp_dir=None):
 
 def main():
     """Main method"""
-    parser = argparse.ArgumentParser(
-        description="Create and monitor VM from source DMG."
-    )
+    parser = argparse.ArgumentParser(description="Create VM from source DMG.")
     parser.add_argument(
         "--version", action="store_true", help="show the version number"
     )
@@ -713,11 +717,6 @@ def main():
     parser.add_argument("-p", "--packer", help="Populate a packer template")
     parser.add_argument("-d", help="Path to CD/DVD ISO path ", default=None)
     parser.add_argument("--hw-model", help="Custom hardware model", default=None)
-    parser.add_argument(
-        "--start", nargs="?", const=randint(1000, 9999), help="Start monitoring of VM"
-    )
-    parser.add_argument("--stop", help="Stop monitoring of VM")
-    parser.add_argument("--reset", help="Reset monitored VM")
     parser.add_argument(
         "--use-qemu",
         help="Use qemu-img intead of the Fusion CLI tools [/path/to/qemu-img]",
@@ -751,19 +750,19 @@ def main():
 
     if (
         os.getuid() != 0
-        and not args.stop
-        and not args.reset
         and not args.use_qemu
         and not args.list_templates
         and not args.list_cache
         and not args.clear_cache
     ):
-        print(colored(
-            "If you don't want to be prompted in the GUI for "
-            "an admin password, run this script with "
-            "sudo rights\n",
-            "yellow",
-        ))
+        print(
+            colored(
+                "If you don't want to be prompted in the GUI for "
+                "an admin password, run this script with "
+                "sudo rights\n",
+                "yellow",
+            )
+        )
 
     # Instantiate variables
     fusion_path = ""
@@ -801,8 +800,6 @@ def main():
     if not template_dir:
         template_dir = "/Library/CPE/bin/vfuse"
 
-    monitor_vm = False
-    job_id = None
     downloaded = False
     serial_format = False
     dmg_name = ""
@@ -899,55 +896,6 @@ def main():
 
     if args.packer:
         packer_template = args.packer
-
-    if args.start:
-        job_id = args.start
-        try:
-            monitor = VMXMonitor()
-        except NameError as err:
-            print(colored(str(err), "red"))
-            print(colored("Make sure vfused is installed.", "red"))
-            sys.exit(1)
-        monitor_vm = True
-
-    if args.stop:
-        job_id = args.stop
-        try:
-            monitor = VMXMonitor()
-        except NameError as err:
-            print(colored(str(err), "red"))
-            print(colored("Make sure vfused is installed.", "red"))
-            sys.exit(1)
-        vmx = monitor.job_to_vmx(job_id)
-        if not vmx:
-            print(colored("Invalid Job ID.", "red"))
-            sys.exit(1)
-        monitor.set_stop(vmx)
-        if os.getuid() == 0:
-            set_perms(monitor.plist)
-        while True:
-            if not monitor.is_running(vmx):
-                break
-        print(colored("Deleting: %s" % os.path.dirname(vmx), "green"))
-        monitor.delete_vm(vmx)
-        sys.exit(0)
-
-    if args.reset:
-        job_id = args.reset
-        try:
-            monitor = VMXMonitor()
-        except NameError as err:
-            print(colored(str(err), "red"))
-            print(colored("Make sure vfused is installed.", "red"))
-            sys.exit(1)
-        vmx = monitor.job_to_vmx(job_id)
-        if not vmx:
-            print(colored("Invalid Job ID.", "red"))
-            sys.exit(1)
-        monitor.set_reset(vmx)
-        if os.getuid() == 0:
-            set_perms(monitor.plist)
-        sys.exit(0)
 
     if args.use_qemu:
         use_qemu = True
@@ -1093,11 +1041,13 @@ def main():
         hw_check = os_rev + 1
 
     if hw_check > hw_version:
-        print(colored(
-            "VMware hardware version %d does not officially "
-            "support 10.%d" % (hw_version, os_rev),
-            "yellow",
-        ))
+        print(
+            colored(
+                "VMware hardware version %d does not officially "
+                "support 10.%d" % (hw_version, os_rev),
+                "yellow",
+            )
+        )
 
     # Temporarily drops the guest_os down by one
     # Uncomment these lines during macOS beta season
@@ -1162,13 +1112,7 @@ def main():
         print(colored("Generating packer template: %s" % packer_template, "green"))
         populate_packer_template(vmpath, packer_template, os_rev)
 
-    if monitor_vm:
-        monitor.set_start(str(vmx), str(job_id))
-        if os.getuid() == 0:
-            set_perms(monitor.plist)
-        print(colored("Adding monitoring for %s" % vmx, "green"))
-    else:
-        print(colored("VMware Fusion VM created at %s" % vmpath, "green"))
+    print(colored("VMware Fusion VM created at %s" % vmpath, "green"))
 
     if netboot:
         if os.path.exists(source_dmg) and "tmp" in source_dmg:
