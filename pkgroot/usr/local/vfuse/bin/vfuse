@@ -359,7 +359,7 @@ def create_vmdk(
                 unmount_dmg(disk_id)
                 sys.exit(1)
 
-        cmd = ["/usr/bin/pgrep", "-f", fusion_path + "/Contents/MacOS/VMware Fusion"]
+        cmd = ["/usr/bin/pgrep", "-f", fusion_path + b"/Contents/MacOS/VMware Fusion"]
         task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = task.communicate()
         if task.returncode:
