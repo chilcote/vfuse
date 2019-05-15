@@ -1,12 +1,12 @@
 #!/usr/bin/python
-'''
+"""
 This script takes a never-booted DMG and converts it to a VMware Fusion VM.
 
 Requirements:
     OS X 10.13.6+
     VMware Fusion Pro
     DMG created with AutoDMG
-'''
+"""
 ##############################################################################
 # Copyright 2016-Present Joseph Chilcote
 #
@@ -23,8 +23,7 @@ Requirements:
 #  under the License.
 ##############################################################################
 
-__author__ = 'Joseph Chilcote (chilcote@gmail.com)'
-__version__ = '2.0.9'
+from __future__ import print_function
 
 import argparse
 import glob
@@ -32,7 +31,6 @@ import hashlib
 import json
 import logging
 import os
-import plistlib
 import shutil
 import string
 import subprocess
@@ -40,14 +38,26 @@ import sys
 import tempfile
 import threading
 import time
-import urllib2
-from CoreFoundation import CFPreferencesCopyAppValue
 from collections import OrderedDict
 from random import randint, sample
+
+from CoreFoundation import CFPreferencesCopyAppValue
 from SystemConfiguration import SCDynamicStoreCopyConsoleUser
+
+try:
+    from plistlib import (load as readPlist, loads as readPlistFromString)
+except ImportError:
+    from plistlib import readPlist, readPlistFromString
+
+try:
+    from urllib.request import urlopen
+    from urllib.error import HTTPError
+except ImportError:
+    from urllib2 import urlopen, HTTPError
+
 try:
     from vfused import VMXMonitor
-except ImportError as err:
+except ImportError:
     pass
 
 
@@ -67,18 +77,20 @@ class Spinner:
     @staticmethod
     def spinning_cursor():
         while 1:
-            for cursor in '|/-\\': yield cursor
+            for cursor in "|/-\\":
+                yield cursor
 
     def __init__(self, delay=None):
         self.spinner_generator = self.spinning_cursor()
-        if delay and float(delay): self.delay = delay
+        if delay and float(delay):
+            self.delay = delay
 
     def spinner_task(self):
         while self.busy:
             sys.stdout.write(next(self.spinner_generator))
             sys.stdout.flush()
             time.sleep(self.delay)
-            sys.stdout.write('\b')
+            sys.stdout.write("\b")
             sys.stdout.flush()
 
     def start(self):
@@ -91,19 +103,19 @@ class Spinner:
 
 
 def colored(text, color=None):
-    if not os.getenv('ANSI_COLORS_DISABLED'):
-        fmt_str = '\033[%dm'
-        reset = '\033[0m'
+    if not os.getenv("ANSI_COLORS_DISABLED"):
+        fmt_str = "\033[%dm"
+        reset = "\033[0m"
         colors = {
-            'grey': 30,
-            'gray': 30,
-            'red': 31,
-            'green': 32,
-            'yellow': 33,
-            'blue': 34,
-            'magenta': 35,
-            'cyan': 36,
-            'white': 37,
+            "grey": 30,
+            "gray": 30,
+            "red": 31,
+            "green": 32,
+            "yellow": 33,
+            "blue": 34,
+            "magenta": 35,
+            "cyan": 36,
+            "white": 37,
         }
         if color is not None:
             text = fmt_str % (colors[color]) + text + reset
@@ -111,56 +123,56 @@ def colored(text, color=None):
 
 
 def import_template(template_name, current_dir, template_dir):
-    '''Imports user-defined template'''
+    """Imports user-defined template"""
     template = None
-    if not '.json' in template_name:
-        template_name += '.json'
+    if ".json" not in template_name:
+        template_name += ".json"
     if os.path.exists(os.path.expanduser(template_name)):
         template = template_name
     else:
         for path in [template_dir, current_dir]:
             if os.path.exists(path):
-                files = [ f for f in os.listdir(path) if
-                        os.path.isfile(os.path.join(path,f)) ]
+                files = [
+                    f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))
+                ]
                 for f in files:
                     if template_name == f:
                         template = os.path.join(path, f)
     if not template:
-        print colored('Unable to find template: %s' % template_name, 'red')
+        print(colored("Unable to find template: %s" % template_name, "red"))
         exit(1)
-    print colored('Using template: %s' % template, 'green')
+    print(colored("Using template: %s" % template, "green"))
     try:
         with open(template) as f:
             try:
                 d = json.load(f)
             except ValueError as err:
-                print colored('Unable to parse %s\n'
-                              'Error: %s' % (template, err),
-                              'red')
+                print(colored(
+                    "Unable to parse %s\n" "Error: %s" % (template, err), "red"
+                ))
                 sys.exit(1)
     except NameError as err:
-        print colored('%s; bailing script.' % err, 'red')
+        print(colored("%s; bailing script." % err, "red"))
         sys.exit(1)
     except IOError as err:
-        print colored('%s: %s' % (err.strerror, template), 'red')
+        print(colored("%s: %s" % (err.strerror, template), "red"))
         sys.exit(1)
     return d
 
 
 def get_sha256(filename, block_size=65536):
-  '''Returns the sha256 of the filename'''
-  if not os.path.exists(filename):
-    return None
-  sha256 = hashlib.sha256()
-  print colored('Generating checksum for %s' % os.path.basename(filename),
-                'green')
-  spinner = Spinner()
-  spinner.start()
-  with open(filename, 'rb') as f:
-      for block in iter(lambda: f.read(block_size), b''):
-          sha256.update(block)
-  spinner.stop()
-  return sha256.hexdigest()
+    """Returns the sha256 of the filename"""
+    if not os.path.exists(filename):
+        return None
+    sha256 = hashlib.sha256()
+    print(colored("Generating checksum for %s" % os.path.basename(filename), "green"))
+    spinner = Spinner()
+    spinner.start()
+    with open(filename, "rb") as f:
+        for block in iter(lambda: f.read(block_size), b""):
+            sha256.update(block)
+    spinner.stop()
+    return sha256.hexdigest()
 
 
 def verify_checksum(i, checksum):
@@ -168,74 +180,75 @@ def verify_checksum(i, checksum):
         return True if i == checksum else False
 
 
-def get_source_dmg(url,
-                   dmg,
-                   cache_dir,
-                   cache_receipt,
-                   checksum,
-                   template,
-                   source_dmg=None,
-                   downloaded=False,
-                   cached=False,
-                   cached_checksum=None,
-                   cached_dmg=None,
-                   generated_checksum=None
-                   ):
-    '''Downloads Base OS DMG if URL defined by user
-        Checks cache for existing Base OS image'''
+def get_source_dmg(
+    url,
+    dmg,
+    cache_dir,
+    cache_receipt,
+    checksum,
+    template,
+    source_dmg=None,
+    downloaded=False,
+    cached=False,
+    cached_checksum=None,
+    cached_dmg=None,
+    generated_checksum=None,
+):
+    """Downloads Base OS DMG if URL defined by user
+        Checks cache for existing Base OS image"""
 
     d = {}
     if os.path.exists(cache_receipt):
-        with open(cache_receipt, 'r') as f:
+        with open(cache_receipt, "r") as f:
             d = json.load(f)
             cached_dmg = d.get(template, None)
             if cached_dmg and cached_dmg != dmg:
-                print colored('Deleting previously cached dmg: %s' % cached_dmg,
-                              'green')
+                print(colored(
+                    "Deleting previously cached dmg: %s" % cached_dmg, "green"
+                ))
                 if os.path.exists(os.path.join(cache_dir, cached_dmg)):
                     os.remove(os.path.join(cache_dir, cached_dmg))
             cached_checksum = d.get(dmg, None)
 
         if os.path.exists(os.path.join(cache_dir, dmg)):
             if checksum and verify_checksum(cached_checksum, checksum):
-                print colored('%s exists in cache' % dmg, 'green')
+                print(colored("%s exists in cache" % dmg, "green"))
                 source_dmg = os.path.join(cache_dir, dmg)
                 generated_checksum = cached_checksum
                 cached = True
             else:
-                print colored('Deleting previously cached dmg: %s' % dmg,
-                              'green')
+                print(colored("Deleting previously cached dmg: %s" % dmg, "green"))
                 if os.path.exists(os.path.join(cache_dir, dmg)):
                     os.remove(os.path.join(cache_dir, dmg))
 
     if not cached:
-        print colored('Downloading %s' % url, 'green')
+        print(colored("Downloading %s" % url, "green"))
         downloaded = True
         spinner = Spinner()
         spinner.start()
         try:
-            req = urllib2.urlopen(url)
+            req = urlopen(url)
             source_dmg = os.path.join(tempfile.mkdtemp(), dmg)
-            with open(source_dmg, 'wb') as f:
+            with open(source_dmg, "wb") as f:
                 shutil.copyfileobj(req, f)
-        except urllib2.URLError, e:
-            print colored('Download of %s failed with error %s' % (url, e),
-                          'red')
+        except HTTPError as e:
+            print(colored("Download of %s failed with error %s" % (url, e), "red"))
             spinner.stop()
             sys.exit(1)
-        except IOError, e:
-            print colored('Could not write %s to disk' % source_dmg, 'red')
+        except IOError as e:
+            print(colored("Could not write %s to disk" % source_dmg, "red"))
             spinner.stop()
             sys.exit(1)
         spinner.stop()
 
         if os.path.exists(source_dmg):
             generated_checksum = get_sha256(source_dmg)
-            if not (verify_checksum(generated_checksum,
-                    checksum) if checksum else True):
-                print colored('Checksum mismatch!', 'red')
-                print colored('Downloaded DMG: %s' % generated_checksum, 'red')
-                print colored('Checksum from template: %s' % checksum, 'red')
+            if not (
+                verify_checksum(generated_checksum, checksum) if checksum else True
+            ):
+                print(colored("Checksum mismatch!", "red"))
+                print(colored("Downloaded DMG: %s" % generated_checksum, "red"))
+                print(colored("Checksum from template: %s" % checksum, "red"))
                 os.remove(source_dmg)
                 spinner.stop()
                 sys.exit(1)
@@ -247,191 +260,209 @@ def get_source_dmg(url,
 
 
 def mount_dmg(dmg, disk_id=False):
-    '''Mounts base DMG'''
+    """Mounts base DMG"""
     d = {}
     if not dmg:
-        print colored('No source DMG provided', 'red')
+        print(colored("No source DMG provided", "red"))
         sys.exit(1)
-    print colored('Mounting %s' % dmg, 'green')
+    print(colored("Mounting %s" % dmg, "green"))
     try:
-        output = subprocess.check_output(['/usr/bin/hdiutil',
-                                          'attach',
-                                          '-nobrowse',
-                                          '-noverify',
-                                          '-noautoopen',
-                                          dmg, '-plist'])
-        d = plistlib.readPlistFromString(output)
-        ignored_vols = ('Preboot', 'Recovery', 'VM')
-        for i in d['system-entities']:
-            if i.get('mount-point', None):
-                if i['mount-point'].split('/')[-1].split()[0] not in ignored_vols:
-                    mount_point = i['mount-point']
-                    volume_kind = i['volume-kind']
-                    mountpoint_dev_entry = i['dev-entry']
-            if i['content-hint'] == 'GUID_partition_scheme':
-                disk_id = i['dev-entry']
+        output = subprocess.check_output(
+            [
+                "/usr/bin/hdiutil",
+                "attach",
+                "-nobrowse",
+                "-noverify",
+                "-noautoopen",
+                dmg,
+                "-plist",
+            ]
+        )
+        d = readPlistFromString(output)
+        ignored_vols = ("Preboot", "Recovery", "VM")
+        for i in d["system-entities"]:
+            if i.get("mount-point", None):
+                if i["mount-point"].split("/")[-1].split()[0] not in ignored_vols:
+                    mount_point = i["mount-point"]
+                    volume_kind = i["volume-kind"]
+                    mountpoint_dev_entry = i["dev-entry"]
+            if i["content-hint"] == "GUID_partition_scheme":
+                disk_id = i["dev-entry"]
         if not disk_id:
-            print colored('Warning: your DMG does not have a partition '
-                          'scheme, and vfuse may fail', 'yellow')
+            print(colored(
+                "Warning: your DMG does not have a partition "
+                "scheme, and vfuse may fail",
+                "yellow",
+            ))
             disk_id = mountpoint_dev_entry
         return mount_point, disk_id, volume_kind
     except subprocess.CalledProcessError:
-        print colored('Cannot mount dmg: %s' % dmg, 'red')
+        print(colored("Cannot mount dmg: %s" % dmg, "red"))
         sys.exit(1)
 
 
 def get_osvers(mount_point):
-    '''Returns the OS Version of the mounted system DMG'''
-    f = os.path.join(mount_point,
-                     'System/Library/CoreServices/SystemVersion.plist')
+    """Returns the OS Version of the mounted system DMG"""
+    sysvers_plist = os.path.join(mount_point, "System/Library/CoreServices/SystemVersion.plist")
     try:
-        d = plistlib.readPlist(f)
-        return d['ProductVersion']
+        with open(sysvers_plist, 'rb') as f:
+            d = readPlist(f)
+        return d["ProductVersion"]
     except IOError as err:
-        print colored(str(err), 'red')
+        print(colored(str(err), "red"))
         unmount_dmg(mount_point)
         sys.exit(1)
 
 
 def unmount_dmg(pathname):
-    '''Unmounts a DMG'''
-    print colored('Unmounting %s' % pathname, 'green')
-    task = subprocess.Popen(['/usr/bin/hdiutil', 'detach', '-force', pathname],
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    """Unmounts a DMG"""
+    print(colored("Unmounting %s" % pathname, "green"))
+    task = subprocess.Popen(
+        ["/usr/bin/hdiutil", "detach", "-force", pathname],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
     out, err = task.communicate()
     if err:
-        print colored('Could not detach:\t%s' % pathname, 'red')
+        print(colored("Could not detach:\t%s" % pathname, "red"))
 
 
-def create_vmdk(output_dir, output_name, disk_id, disk_type,
-                fusion_path, use_qemu, qemu_path, source_dmg):
-    '''Converts Base OS DMG to VMDK'''
-    vmpath = os.path.join(output_dir, output_name + '.vmwarevm')
+def create_vmdk(
+    output_dir,
+    output_name,
+    disk_id,
+    disk_type,
+    fusion_path,
+    use_qemu,
+    qemu_path,
+    source_dmg,
+):
+    """Converts Base OS DMG to VMDK"""
+    vmpath = os.path.join(output_dir, output_name + ".vmwarevm")
     if os.path.exists(vmpath):
-        print colored('VMware Fusion VM already exists: %s' % vmpath, 'red')
+        print(colored("VMware Fusion VM already exists: %s" % vmpath, "red"))
         sys.exit(1)
     os.mkdir(vmpath)
 
     if not fusion_path:
-        cmd = ['/usr/bin/mdfind',
-                'kMDItemCFBundleIdentifier == com.vmware.fusion']
-        fusion_path = sorted(
-            subprocess.check_output(cmd).strip().split('\n'))[0]
+        cmd = ["/usr/bin/mdfind", "kMDItemCFBundleIdentifier == com.vmware.fusion"]
+        fusion_path = sorted(subprocess.check_output(cmd).strip().split(b"\n"))[0]
 
         if not fusion_path:
             try:
-                fusion_path = glob.glob(
-                    '/Applications/VMware Fusion*.app')[0]
+                fusion_path = glob.glob("/Applications/VMware Fusion*.app")[0]
             except IndexError:
-                print colored('Error: VMware Fusion.app not found', 'red')
+                print(colored("Error: VMware Fusion.app not found", "red"))
                 unmount_dmg(disk_id)
                 sys.exit(1)
 
-    fusion_tools_path = os.path.join(fusion_path, 'Contents/Library')
+    fusion_tools_path = os.path.join(fusion_path, b"Contents/Library")
 
-    vmdk = os.path.join(vmpath, output_name + '.vmdk')
+    vmdk = os.path.join(vmpath, output_name + ".vmdk")
 
     if use_qemu:
-        cmd = [qemu_path, 'convert', '-O', 'vmdk', source_dmg, vmdk]
-        print colored('Using qemu-img path: %s' % qemu_path, 'green')
-        print colored('Converting DMG to VMDK', 'green')
+        cmd = [qemu_path, "convert", "-O", "vmdk", source_dmg, vmdk]
+        print(colored("Using qemu-img path: %s" % qemu_path, "green"))
+        print(colored("Converting DMG to VMDK", "green"))
         spinner = Spinner()
         spinner.start()
         try:
-            task = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE)
+            task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             out, err = task.communicate()
             if err:
-                print colored('Error: %s' % err.strip(), 'red')
-                print colored('There is a problem with your DMG, '
-                              'please try again',
-                              'red')
+                print(colored("Error: %s" % err.strip(), "red"))
+                print(colored(
+                    "There is a problem with your DMG, " "please try again", "red"
+                ))
                 spinner.stop()
                 sys.exit(1)
         except OSError as e:
-            err = 'Failed to execute %s: %s' % (cmd[0], e)
-            print colored('Error: %s' % err, 'red')
+            err = "Failed to execute %s: %s" % (cmd[0], e)
+            print(colored("Error: %s" % err, "red"))
             shutil.rmtree(vmpath)
             spinner.stop()
             sys.exit(1)
         spinner.stop()
     else:
-        print colored('Using VMware Fusion path: %s' % fusion_path, 'green')
-        link = os.path.join(vmpath, os.path.basename(disk_id) + '-link')
+        print(colored("Using VMware Fusion path: %s" % fusion_path, "green"))
+        link = os.path.join(vmpath, os.path.basename(disk_id) + "-link")
 
-        print colored('Converting DMG to VMDK', 'green')
+        print(colored("Converting DMG to VMDK", "green"))
         spinner = Spinner()
         spinner.start()
         try:
             # /Applications/VMware\ Fusion.app/Contents/Library/\
             # vmware-rawdiskCreator create /dev/disk2 \
             # fullDevice ./disk2-link lsilogic
-            cmd = [os.path.join(fusion_tools_path, 'vmware-rawdiskCreator'),
-                   'create',
-                   disk_id,
-                   'fullDevice',
-                   link,
-                   'lsilogic']
-            task = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE)
+            cmd = [
+                os.path.join(fusion_tools_path, "vmware-rawdiskCreator"),
+                "create",
+                disk_id,
+                "fullDevice",
+                link,
+                "lsilogic",
+            ]
+            task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             out, err = task.communicate()
             if err:
-                print colored('Error: %s' % err.strip(), 'red')
-                print colored('There is a problem with your DMG; '
-                              'please re-create it and try again',
-                              'red')
+                print(colored("Error: %s" % err.strip(), "red"))
+                print(colored(
+                    "There is a problem with your DMG; "
+                    "please re-create it and try again",
+                    "red",
+                ))
                 spinner.stop()
                 unmount_dmg(disk_id)
                 sys.exit(1)
 
             # /Applications/VMware\ Fusion.app/Contents/Library/\
             # vmware-vdiskmanager -r ./disk2-link.vmdk -t 0 ./macos-disk.vmdk
-            cmd = [os.path.join(fusion_tools_path, 'vmware-vdiskmanager'),
-                   '-r',
-                   link + '.vmdk',
-                   '-t',
-                   str(disk_type),
-                   vmdk]
-            task = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE)
+            cmd = [
+                os.path.join(fusion_tools_path, "vmware-vdiskmanager"),
+                "-r",
+                link + ".vmdk",
+                "-t",
+                str(disk_type),
+                vmdk,
+            ]
+            task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             out, err = task.communicate()
             if task.returncode:
                 if not err:
-                    err = 'Undetermined error with vmware-vdiskmanager'
+                    err = "Undetermined error with vmware-vdiskmanager"
                 raise VdiskManagerError(err.strip())
 
         except OSError as e:
-            err = 'Failed to execute %s: %s' % (cmd[0], e)
-            print colored('Error: %s' % err, 'red')
+            err = "Failed to execute %s: %s" % (cmd[0], e)
+            print(colored("Error: %s" % err, "red"))
             unmount_dmg(disk_id)
             shutil.rmtree(vmpath)
             spinner.stop()
             sys.exit(1)
 
-        except VdiskManagerError, e:
-            print colored('Error: %s' % e, 'red')
+        except VdiskManagerError as e:
+            print(colored("Error: %s" % e, "red"))
             unmount_dmg(disk_id)
             shutil.rmtree(vmpath)
             spinner.stop()
             sys.exit(1)
 
         spinner.stop()
-        os.remove(link + '.vmdk')
+        os.remove(link + ".vmdk")
 
-        print colored('Hiding file extension', 'green')
+        print(colored("Hiding file extension", "green"))
         try:
-            cmd = ['/usr/bin/SetFile', '-a', 'E', vmpath]
-            task = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                    stderr=subprocess.PIPE)
+            cmd = ["/usr/bin/SetFile", "-a", "E", vmpath]
+            task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             out, err = task.communicate()
         except err:
-            print colored('Error: %s' % err.strip(), 'red')
+            print(colored("Error: %s" % err.strip(), "red"))
 
     return vmpath, fusion_tools_path
 
 
 def set_perms(path):
-    '''Sets the permissions of given path to local user'''
+    """Sets the permissions of given path to local user"""
     uid = SCDynamicStoreCopyConsoleUser(None, None, None)[1]
     os.chown(path, int(uid), 20)
     for root, dirs, files in os.walk(path):
@@ -440,27 +471,27 @@ def set_perms(path):
 
 
 def create_vmx(
-                vmpath,
-                output_name,
-                guest_os,
-                hw_version,
-                mem_size,
-                connection_type,
-                enable3d,
-                vnc_port,
-                vnc_passwd,
-                mac_address,
-                hw_model,
-                serial_number,
-                serial_format,
-                shared_folder,
-                dvdiso,
-                recovery
-            ):
-    '''Generates a working VMX file'''
-    vmx = os.path.join(vmpath, output_name + '.vmx')
-    print colored('Populating VMX file', 'green')
-    with open(vmx, 'w') as f:
+    vmpath,
+    output_name,
+    guest_os,
+    hw_version,
+    mem_size,
+    connection_type,
+    enable3d,
+    vnc_port,
+    vnc_passwd,
+    mac_address,
+    hw_model,
+    serial_number,
+    serial_format,
+    shared_folder,
+    dvdiso,
+    recovery,
+):
+    """Generates a working VMX file"""
+    vmx = os.path.join(vmpath, output_name + ".vmx")
+    print(colored("Populating VMX file", "green"))
+    with open(vmx, "w") as f:
         f.write('.encoding = "UTF-8"\n')
         f.write('config.version = "8"\n')
         f.write('virtualhw.version = "%d"\n' % hw_version)
@@ -551,106 +582,101 @@ def create_vmx(
 
 
 def generic_packer_template():
-    '''Returns a baseline packer template'''
+    """Returns a baseline packer template"""
     d = {
-        'builders': [
+        "builders": [
             {
-                'type': 'vmware-vmx',
-                'source_path': '',
-                'ssh_username': 'vagrant',
-                'ssh_password': 'vagrant',
-                'ssh_port': '22',
-                'ssh_wait_timeout': '10000s',
-                'tools_upload_flavor': 'darwin',
-                'shutdown_command': 'sudo shutdown -h now'
+                "type": "vmware-vmx",
+                "source_path": "",
+                "ssh_username": "vagrant",
+                "ssh_password": "vagrant",
+                "ssh_port": "22",
+                "ssh_wait_timeout": "10000s",
+                "tools_upload_flavor": "darwin",
+                "shutdown_command": "sudo shutdown -h now",
             }
         ],
-        'min_packer_version': '0.8.6',
-        'post-processors': ['vagrant']
+        "min_packer_version": "0.8.6",
+        "post-processors": ["vagrant"],
     }
     return OrderedDict(d)
 
 
 def populate_packer_template(path, template, os_rev):
-    '''Creates a packer template file'''
+    """Creates a packer template file"""
     if not os.path.exists(template):
-        print colored('File not found; creating generic one: %s' % template,
-                      'yellow')
+        print(colored("File not found; creating generic one: %s" % template, "yellow"))
         d = generic_packer_template()
     else:
-        with open(template, 'r') as f:
+        with open(template, "r") as f:
             d = json.load(f, object_pairs_hook=OrderedDict)
-    d['builders'][0]['source_path'] = path
+    d["builders"][0]["source_path"] = path
     # handle alternate darwin iso used as of VMware Fusion 8.5.4, for
     # pre-10.11 guests
     if os_rev < 11:
-        d['builders'][0]['tools_upload_flavor'] = 'darwinPre15'
-    with open(template, 'w') as f:
-        json.dump(d, f, indent=4, separators=(',', ': '))
+        d["builders"][0]["tools_upload_flavor"] = "darwinPre15"
+    with open(template, "w") as f:
+        json.dump(d, f, indent=4, separators=(",", ": "))
     set_perms(template)
 
 
 def create_empty_dmg(size, netboot_tmp_dir=None):
-    '''Create an empty dmg to be used in a netboot scenario'''
+    """Create an empty dmg to be used in a netboot scenario"""
     if not netboot_tmp_dir:
         netboot_tmp_dir = tempfile.mkdtemp()
     else:
         netboot_tmp_dir = os.path.expanduser(netboot_tmp_dir)
         if not os.path.exists(netboot_tmp_dir):
             os.mkdir(netboot_tmp_dir)
-    temp_dmg = os.path.join(
-            os.path.expanduser(
-                netboot_tmp_dir
-                ), 'vfuse_tmp.dmg'
-            )
-    converted_dmg = os.path.join(tempfile.mkdtemp(), 'vfuse_converted.dmg')
+    temp_dmg = os.path.join(os.path.expanduser(netboot_tmp_dir), "vfuse_tmp.dmg")
+    converted_dmg = os.path.join(tempfile.mkdtemp(), "vfuse_converted.dmg")
 
-    print colored('Creating temporary DMG: %s' % temp_dmg, 'green')
+    print(colored("Creating temporary DMG: %s" % temp_dmg, "green"))
     spinner = Spinner()
     spinner.start()
-    cmd = ['/usr/bin/hdiutil',
-           'create',
-           os.path.splitext(os.path.expanduser(temp_dmg))[0],
-           '-size',
-           size + 'g',
-           '-volname',
-           'Macintosh HD',
-           '-layout',
-           'GPTSPUD',
-           '-fs',
-           'JHFS+',
-           '-mode',
-           '775',
-           '-uid',
-           '0',
-           '-gid',
-           '80'
-           ]
-    task = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
+    cmd = [
+        "/usr/bin/hdiutil",
+        "create",
+        os.path.splitext(os.path.expanduser(temp_dmg))[0],
+        "-size",
+        size + "g",
+        "-volname",
+        "Macintosh HD",
+        "-layout",
+        "GPTSPUD",
+        "-fs",
+        "JHFS+",
+        "-mode",
+        "775",
+        "-uid",
+        "0",
+        "-gid",
+        "80",
+    ]
+    task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = task.communicate()
     if err:
-        print colored(err, 'red')
+        print(colored(err, "red"))
         spinner.stop()
         exit(1)
     spinner.stop()
 
     if os.path.exists(temp_dmg):
-        print colored('Converting temporary DMG: %s' % converted_dmg, 'green')
+        print(colored("Converting temporary DMG: %s" % converted_dmg, "green"))
         spinner.start()
-        cmd = ['/usr/bin/hdiutil',
-               'convert',
-               temp_dmg,
-               '-format',
-               'UDZO',
-               '-o',
-               converted_dmg
-               ]
-        task = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
+        cmd = [
+            "/usr/bin/hdiutil",
+            "convert",
+            temp_dmg,
+            "-format",
+            "UDZO",
+            "-o",
+            converted_dmg,
+        ]
+        task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = task.communicate()
         if err:
-            print colored('Could not convert empty dmg', err)
+            print(colored("Could not convert empty dmg", err))
             shutil.rmtree(os.path.dirname(temp_dmg))
             spinner.stop()
             exit(1)
@@ -660,91 +686,100 @@ def create_empty_dmg(size, netboot_tmp_dir=None):
 
 
 def main():
-    '''Main method'''
+    """Main method"""
     parser = argparse.ArgumentParser(
-                        description='Create and monitor VM from source DMG.')
-    parser.add_argument('--version', action='store_true',
-                        help='show the version number')
-    parser.add_argument('-i', '--input', help='/path/to/dmg')
-    parser.add_argument('-o', '--output', help='/path/to/output/dir')
-    parser.add_argument('-n', '--name', help='Use a custom name')
-    parser.add_argument('-w', '--hw-version', help='VMware hardware version',
-                        type=int)
-    parser.add_argument('-m', '--mem-size', help='Memory Size in MB',
-                        type=int)
-    parser.add_argument('-s', '--serial',
-                        help='Custom Serial number', nargs='?',
-                        const='random', default=None)
-    parser.add_argument('-t', '--template', help='Use a template')
-    parser.add_argument('-e', '--esx',
-                        help='Create pre-allocated ESX-type VMDK',
-                        action='store_true')
-    parser.add_argument('-p', '--packer', help='Populate a packer template')
-    parser.add_argument('-d', help='Path to CD/DVD ISO path ', default=None)
-    parser.add_argument('--hw-model',
-                        help='Custom hardware model', default=None)
-    parser.add_argument('--start', nargs='?', const=randint(1000, 9999),
-                        help='Start monitoring of VM')
-    parser.add_argument('--stop', help='Stop monitoring of VM')
-    parser.add_argument('--reset', help='Reset monitored VM')
-    parser.add_argument('--use-qemu',
-                        help='Use qemu-img intead of the Fusion CLI tools [/path/to/qemu-img]',
-                        default=False,
-                        const='/usr/local/bin/qemu-img',
-                        nargs='?',
-                        action='store')
-    parser.add_argument('--recovery',
-                        help='Boot into Recovery HD',
-                        action='store_true')
-    parser.add_argument('--snapshot',
-                        help='Create initial snapshot',
-                        action='store_true')
-    parser.add_argument('--snapshot-name',
-                        help='Custom name for the initial snapshot')
-    parser.add_argument('-c', '--checksum',
-                        help='Generate checksum of a DMG')
-    parser.add_argument('--list-templates',
-                        help='Return list of available templates',
-                        action='store_true')
-    parser.add_argument('--list-cache',
-                        help='Return list of cached disk images',
-                        action='store_true')
-    parser.add_argument('--clear-cache',
-                        help='Clear cached disk images',
-                        action='store_true')
+        description="Create and monitor VM from source DMG."
+    )
+    parser.add_argument(
+        "--version", action="store_true", help="show the version number"
+    )
+    parser.add_argument("-i", "--input", help="/path/to/dmg")
+    parser.add_argument("-o", "--output", help="/path/to/output/dir")
+    parser.add_argument("-n", "--name", help="Use a custom name")
+    parser.add_argument("-w", "--hw-version", help="VMware hardware version", type=int)
+    parser.add_argument("-m", "--mem-size", help="Memory Size in MB", type=int)
+    parser.add_argument(
+        "-s",
+        "--serial",
+        help="Custom Serial number",
+        nargs="?",
+        const="random",
+        default=None,
+    )
+    parser.add_argument("-t", "--template", help="Use a template")
+    parser.add_argument(
+        "-e", "--esx", help="Create pre-allocated ESX-type VMDK", action="store_true"
+    )
+    parser.add_argument("-p", "--packer", help="Populate a packer template")
+    parser.add_argument("-d", help="Path to CD/DVD ISO path ", default=None)
+    parser.add_argument("--hw-model", help="Custom hardware model", default=None)
+    parser.add_argument(
+        "--start", nargs="?", const=randint(1000, 9999), help="Start monitoring of VM"
+    )
+    parser.add_argument("--stop", help="Stop monitoring of VM")
+    parser.add_argument("--reset", help="Reset monitored VM")
+    parser.add_argument(
+        "--use-qemu",
+        help="Use qemu-img intead of the Fusion CLI tools [/path/to/qemu-img]",
+        default=False,
+        const="/usr/local/bin/qemu-img",
+        nargs="?",
+        action="store",
+    )
+    parser.add_argument("--recovery", help="Boot into Recovery HD", action="store_true")
+    parser.add_argument(
+        "--snapshot", help="Create initial snapshot", action="store_true"
+    )
+    parser.add_argument("--snapshot-name", help="Custom name for the initial snapshot")
+    parser.add_argument("-c", "--checksum", help="Generate checksum of a DMG")
+    parser.add_argument(
+        "--list-templates",
+        help="Return list of available templates",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--list-cache", help="Return list of cached disk images", action="store_true"
+    )
+    parser.add_argument(
+        "--clear-cache", help="Clear cached disk images", action="store_true"
+    )
     args = parser.parse_args()
 
     if args.version:
-        print __version__
+        print(__version__)
         exit(0)
 
-    if (os.getuid() != 0
-            and not args.stop
-            and not args.reset
-            and not args.use_qemu
-            and not args.list_templates
-            and not args.list_cache
-            and not args.clear_cache):
-        print colored('If you don\'t want to be prompted in the GUI for '
-                      'an admin password, run this script with '
-                      'sudo rights\n',
-                      'yellow')
+    if (
+        os.getuid() != 0
+        and not args.stop
+        and not args.reset
+        and not args.use_qemu
+        and not args.list_templates
+        and not args.list_cache
+        and not args.clear_cache
+    ):
+        print(colored(
+            "If you don't want to be prompted in the GUI for "
+            "an admin password, run this script with "
+            "sudo rights\n",
+            "yellow",
+        ))
 
     # Instantiate variables
-    fusion_path = ''
-    source_dmg = ''
+    fusion_path = ""
+    source_dmg = ""
     output_dir = os.getcwd()
-    output_name = 'macos-vm'
+    output_name = "macos-vm"
     cached = False
-    cache_dir = os.path.join(os.getenv('HOME'), '.vfuse')
-    cache_receipt = os.path.join(cache_dir, 'cache.receipt')
+    cache_dir = os.path.join(os.getenv("HOME"), ".vfuse")
+    cache_receipt = os.path.join(cache_dir, "cache.receipt")
     updated_cache = {}
     checksum = None
     hw_version = 16
     mem_size = 4096
     disk_type = 0
     dvdiso = None
-    connection_type = 'nat'
+    connection_type = "nat"
     mac_address = None
     enable3d = False
     vnc_port = None
@@ -754,68 +789,81 @@ def main():
     shared_folder = None
     packer_template = False
     use_qemu = False
-    qemu_path = '/usr/local/bin/qemu-img'
+    qemu_path = "/usr/local/bin/qemu-img"
     netboot = False
-    netboot_hdsize = '40'
-    netboot_osvers = get_osvers('/')
+    netboot_hdsize = "40"
+    netboot_osvers = get_osvers("/")
     netboot_tmp_dir = None
     recovery = False
     snapshot = False
-    snapshot_name = 'baseline'
-    template_dir = CFPreferencesCopyAppValue('template_dir', 'com.github.vfuse')
+    snapshot_name = "baseline"
+    template_dir = CFPreferencesCopyAppValue("template_dir", "com.github.vfuse")
     if not template_dir:
-        template_dir = '/Library/CPE/bin/vfuse'
+        template_dir = "/Library/CPE/bin/vfuse"
 
     monitor_vm = False
     job_id = None
     downloaded = False
     serial_format = False
-    dmg_name = ''
-    guest_os = ''
+    dmg_name = ""
+    guest_os = ""
     logger_file = None
 
     if args.list_templates:
         templates = []
         for path in [output_dir, template_dir]:
             if os.path.exists(path):
-                files = [ f for f in os.listdir(path) if
-                        os.path.isfile(os.path.join(path,f)) ]
+                files = [
+                    f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))
+                ]
                 for f in files:
-                    if f.lower().endswith('.json'):
+                    if f.lower().endswith(".json"):
                         templates.append(f)
-        print '\n'.join(sorted(set(templates)))
+        print("\n".join(sorted(set(templates))))
         sys.exit(0)
 
     if args.list_cache:
         cached_dmgs = []
         if os.path.exists(cache_dir):
-            files = [ f for f in os.listdir(cache_dir) if
-                    os.path.isfile(os.path.join(cache_dir,f)) ]
+            files = [
+                f
+                for f in os.listdir(cache_dir)
+                if os.path.isfile(os.path.join(cache_dir, f))
+            ]
             for f in files:
-                if f.lower().endswith('.dmg'):
+                if f.lower().endswith(".dmg"):
                     cached_dmgs.append(f)
         if cached_dmgs:
-            print '\n'.join(sorted(set(cached_dmgs)))
+            print("\n".join(sorted(set(cached_dmgs))))
         else:
-            print colored('No cached disk images found.', 'green')
+            print(colored("No cached disk images found.", "green"))
         sys.exit(0)
 
     if args.clear_cache:
         if os.path.exists(cache_dir):
-            files = [ f for f in os.listdir(cache_dir) if
-                    os.path.isfile(os.path.join(cache_dir,f)) ]
+            files = [
+                f
+                for f in os.listdir(cache_dir)
+                if os.path.isfile(os.path.join(cache_dir, f))
+            ]
             for f in files:
-                if f.lower().endswith('.dmg'):
-                    print colored('Removing %s' % f, 'yellow')
+                if f.lower().endswith(".dmg"):
+                    print(colored("Removing %s" % f, "yellow"))
                     os.remove(os.path.join(cache_dir, f))
-        with open(cache_receipt, 'w') as f:
-            json.dump({}, f, indent=4, separators=(',', ': '))
+        with open(cache_receipt, "w") as f:
+            json.dump({}, f, indent=4, separators=(",", ": "))
         if os.getuid() == 0:
             set_perms(cache_receipt)
         sys.exit(0)
 
-    if not args.input and not args.template and not args.start \
-            and not args.stop and not args.reset and not args.checksum:
+    if (
+        not args.input
+        and not args.template
+        and not args.start
+        and not args.stop
+        and not args.reset
+        and not args.checksum
+    ):
         parser.print_help()
         sys.exit(1)
 
@@ -840,9 +888,9 @@ def main():
     if args.mem_size:
         mem_size = args.mem_size
 
-    if args.serial == 'random':
+    if args.serial == "random":
         s = string.lowercase + string.digits
-        serial_number = 'VM' + ''.join(sample(s, 10))
+        serial_number = "VM" + "".join(sample(s, 10))
     else:
         serial_number = args.serial
 
@@ -857,8 +905,8 @@ def main():
         try:
             monitor = VMXMonitor()
         except NameError as err:
-            print colored(str(err), 'red')
-            print colored('Make sure vfused is installed.', 'red')
+            print(colored(str(err), "red"))
+            print(colored("Make sure vfused is installed.", "red"))
             sys.exit(1)
         monitor_vm = True
 
@@ -867,12 +915,12 @@ def main():
         try:
             monitor = VMXMonitor()
         except NameError as err:
-            print colored(str(err), 'red')
-            print colored('Make sure vfused is installed.', 'red')
+            print(colored(str(err), "red"))
+            print(colored("Make sure vfused is installed.", "red"))
             sys.exit(1)
         vmx = monitor.job_to_vmx(job_id)
         if not vmx:
-            print colored('Invalid Job ID.', 'red')
+            print(colored("Invalid Job ID.", "red"))
             sys.exit(1)
         monitor.set_stop(vmx)
         if os.getuid() == 0:
@@ -880,7 +928,7 @@ def main():
         while True:
             if not monitor.is_running(vmx):
                 break
-        print colored('Deleting: %s' % os.path.dirname(vmx), 'green')
+        print(colored("Deleting: %s" % os.path.dirname(vmx), "green"))
         monitor.delete_vm(vmx)
         sys.exit(0)
 
@@ -889,12 +937,12 @@ def main():
         try:
             monitor = VMXMonitor()
         except NameError as err:
-            print colored(str(err), 'red')
-            print colored('Make sure vfused is installed.', 'red')
+            print(colored(str(err), "red"))
+            print(colored("Make sure vfused is installed.", "red"))
             sys.exit(1)
         vmx = monitor.job_to_vmx(job_id)
         if not vmx:
-            print colored('Invalid Job ID.', 'red')
+            print(colored("Invalid Job ID.", "red"))
             sys.exit(1)
         monitor.set_reset(vmx)
         if os.getuid() == 0:
@@ -918,110 +966,115 @@ def main():
     if args.checksum:
         source_dmg = os.path.expanduser(args.checksum)
         checksum = get_sha256(source_dmg)
-        print colored('Checksum: %s' % checksum, 'green')
+        print(colored("Checksum: %s" % checksum, "green"))
         sys.exit(0)
 
     if args.template:
         # Use template-defined keys, otherwise use defaults defined above.
         d = import_template(args.template, output_dir, template_dir)
-        if d.get('fusion_path'):
-            fusion_path = os.path.expanduser(d['fusion_path'])
+        if d.get("fusion_path"):
+            fusion_path = os.path.expanduser(d["fusion_path"])
             if not os.path.exists(fusion_path):
-                print colored('VMware Fusion not found at %s' % fusion_path, 'red')
+                print(colored("VMware Fusion not found at %s" % fusion_path, "red"))
                 sys.exit(1)
-        if not d.get('source_dmg') and not d.get('netboot') and not source_dmg:
+        if not d.get("source_dmg") and not d.get("netboot") and not source_dmg:
             parser.print_help()
             sys.exit(1)
-        if d.get('netboot'):
-            netboot = d['netboot']
-            if d.get('netboot_hdsize'):
-                netboot_hdsize = str(d['netboot_hdsize'])
-            if d.get('netboot_osvers'):
-                netboot_osvers = d['netboot_osvers']
-            if d.get('netboot_tmp_dir'):
-                netboot_tmp_dir = d['netboot_tmp_dir']
+        if d.get("netboot"):
+            netboot = d["netboot"]
+            if d.get("netboot_hdsize"):
+                netboot_hdsize = str(d["netboot_hdsize"])
+            if d.get("netboot_osvers"):
+                netboot_osvers = d["netboot_osvers"]
+            if d.get("netboot_tmp_dir"):
+                netboot_tmp_dir = d["netboot_tmp_dir"]
             source_dmg = create_empty_dmg(netboot_hdsize, netboot_tmp_dir)
-            connection_type = 'bridged'
-        elif d.get('source_dmg'):
-            source_dmg = os.path.expanduser(d['source_dmg'])
+            connection_type = "bridged"
+        elif d.get("source_dmg"):
+            source_dmg = os.path.expanduser(d["source_dmg"])
 
-        if d.get('checksum'):
-            checksum = d['checksum']
-        if d.get('output_dir'):
-            output_dir = os.path.expanduser(d['output_dir'])
-        if d.get('output_name'):
-            output_name = d['output_name']
+        if d.get("checksum"):
+            checksum = d["checksum"]
+        if d.get("output_dir"):
+            output_dir = os.path.expanduser(d["output_dir"])
+        if d.get("output_name"):
+            output_name = d["output_name"]
 
-        output_vmpath = os.path.join(output_dir, output_name + '.vmwarevm')
+        output_vmpath = os.path.join(output_dir, output_name + ".vmwarevm")
         if os.path.exists(output_vmpath):
-            print colored('VMware Fusion VM already exists: %s' % output_vmpath, 'red')
+            print(colored("VMware Fusion VM already exists: %s" % output_vmpath, "red"))
             sys.exit(1)
 
-        if d.get('cache'):
-            cached = d['cache']
-            if 'http' in source_dmg and cached:
+        if d.get("cache"):
+            cached = d["cache"]
+            if "http" in source_dmg and cached:
                 if not os.path.exists(cache_dir):
                     os.mkdir(cache_dir)
                 dmg_name = os.path.basename(source_dmg)
-                template_name = args.template.split('.')[0]
-                (source_dmg, downloaded, cached, generated_checksum,
-                 updated_cache) = get_source_dmg(source_dmg,
-                                                      dmg_name,
-                                                      cache_dir,
-                                                      cache_receipt,
-                                                      checksum,
-                                                      template_name
-                                                      )
-        if d.get('hw_version'):
-            hw_version = int(d['hw_version'])
-        if d.get('mem_size'):
-            mem_size = int(d['mem_size'])
-        if d.get('disk_type'):
-            disk_type = int(d['disk_type'])
-        if d.get('packer_template'):
-            packer_template = d['packer_template']
-        if d.get('bridged'):
-            connection_type = 'bridged'
-        if d.get('mac_address'):
-            mac_address = d['mac_address']
-        if d.get('enable3d'):
+                template_name = args.template.split(".")[0]
+                (
+                    source_dmg,
+                    downloaded,
+                    cached,
+                    generated_checksum,
+                    updated_cache,
+                ) = get_source_dmg(
+                    source_dmg,
+                    dmg_name,
+                    cache_dir,
+                    cache_receipt,
+                    checksum,
+                    template_name,
+                )
+        if d.get("hw_version"):
+            hw_version = int(d["hw_version"])
+        if d.get("mem_size"):
+            mem_size = int(d["mem_size"])
+        if d.get("disk_type"):
+            disk_type = int(d["disk_type"])
+        if d.get("packer_template"):
+            packer_template = d["packer_template"]
+        if d.get("bridged"):
+            connection_type = "bridged"
+        if d.get("mac_address"):
+            mac_address = d["mac_address"]
+        if d.get("enable3d"):
             enable3d = True
-        if d.get('vnc_port'):
-            vnc_port = int(d['vnc_port'])
-        if d.get('vnc_passwd'):
-            vnc_passwd = d['vnc_passwd']
-        if d.get('hw_model'):
-            hw_model = d['hw_model']
-        if d.get('serial_number'):
-            serial_number = d['serial_number']
-            if serial_number == 'random':
+        if d.get("vnc_port"):
+            vnc_port = int(d["vnc_port"])
+        if d.get("vnc_passwd"):
+            vnc_passwd = d["vnc_passwd"]
+        if d.get("hw_model"):
+            hw_model = d["hw_model"]
+        if d.get("serial_number"):
+            serial_number = d["serial_number"]
+            if serial_number == "random":
                 s = string.lowercase + string.digits
-                serial_number = 'VM' + ''.join(sample(s, 10))
-        if d.get('shared_folder'):
-            shared_folder = os.path.expanduser(d['shared_folder'])
-        if d.get('use_qemu'):
-            use_qemu = d['use_qemu']
-        if d.get('qemu_path'):
-            qemu_path = d['qemu_path']
-        if d.get('recovery'):
-            recovery = d['recovery']
-        if d.get('snapshot'):
-            snapshot = d['snapshot']
-        if d.get('snapshot_name'):
-            snapshot_name = d['snapshot_name']
-        if d.get('logger_file'):
-            logger_file = d['logger_file']
+                serial_number = "VM" + "".join(sample(s, 10))
+        if d.get("shared_folder"):
+            shared_folder = os.path.expanduser(d["shared_folder"])
+        if d.get("use_qemu"):
+            use_qemu = d["use_qemu"]
+        if d.get("qemu_path"):
+            qemu_path = d["qemu_path"]
+        if d.get("recovery"):
+            recovery = d["recovery"]
+        if d.get("snapshot"):
+            snapshot = d["snapshot"]
+        if d.get("snapshot_name"):
+            snapshot_name = d["snapshot_name"]
+        if d.get("logger_file"):
+            logger_file = d["logger_file"]
 
     mount_point, disk_id, volume_kind = mount_dmg(source_dmg)
 
     os_vers = get_osvers(mount_point) if not netboot else netboot_osvers
-    print colored('macOS version is %s' % os_vers, 'green')
-    os_rev = int(os_vers.split('.')[1])
+    print(colored("macOS version is %s" % os_vers, "green"))
+    os_rev = int(os_vers.split(".")[1])
     if os_rev <= 8:
         serial_format = True
     if (os_rev < 7) or (os_rev > 14):
-        print colored('This macOS version is not supported: %s' % os_vers,
-                      'red')
+        print(colored("This macOS version is not supported: %s" % os_vers, "red"))
         unmount_dmg(mount_point)
         sys.exit(1)
     # 10.7 (darwin11-64) requires virtualHW.version 8
@@ -1040,90 +1093,90 @@ def main():
         hw_check = os_rev + 1
 
     if hw_check > hw_version:
-        print colored('VMware hardware version %d does not officially '
-                      'support 10.%d' % (hw_version, os_rev),
-                      'yellow')
+        print(colored(
+            "VMware hardware version %d does not officially "
+            "support 10.%d" % (hw_version, os_rev),
+            "yellow",
+        ))
 
     # Temporarily drops the guest_os down by one
     # Uncomment these lines during macOS beta season
     # if os_rev >= 14:
     #     os_rev = os_rev - 1
-    guest_os = 'darwin%d-64' % (os_rev + 4)
+    guest_os = "darwin%d-64" % (os_rev + 4)
 
-    if volume_kind == 'apfs':
+    if volume_kind == "apfs":
         unmount_dmg(mount_point)
 
     vmpath, fusion_tools_path = create_vmdk(
-                                        output_dir,
-                                        output_name,
-                                        disk_id,
-                                        disk_type,
-                                        fusion_path,
-                                        use_qemu,
-                                        qemu_path,
-                                        source_dmg
-                                        )
+        output_dir,
+        output_name,
+        disk_id,
+        disk_type,
+        fusion_path,
+        use_qemu,
+        qemu_path,
+        source_dmg,
+    )
 
     vmx = create_vmx(
-                    vmpath,
-                    output_name,
-                    guest_os,
-                    hw_version,
-                    mem_size,
-                    connection_type,
-                    enable3d,
-                    vnc_port,
-                    vnc_passwd,
-                    mac_address,
-                    hw_model,
-                    serial_number,
-                    serial_format,
-                    shared_folder,
-                    dvdiso,
-                    recovery
-                )
+        vmpath,
+        output_name,
+        guest_os,
+        hw_version,
+        mem_size,
+        connection_type,
+        enable3d,
+        vnc_port,
+        vnc_passwd,
+        mac_address,
+        hw_model,
+        serial_number,
+        serial_format,
+        shared_folder,
+        dvdiso,
+        recovery,
+    )
     unmount_dmg(disk_id)
 
     if snapshot:
-        print colored('Creating a "%s" snapshot' % snapshot_name, 'green')
-        cmd = [os.path.join(fusion_tools_path, 'vmrun'),
-               '-T',
-               'fusion',
-               'snapshot',
-               vmx,
-               snapshot_name
-               ]
-        task = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
+        print(colored('Creating a "%s" snapshot' % snapshot_name, "green"))
+        cmd = [
+            os.path.join(fusion_tools_path, "vmrun"),
+            "-T",
+            "fusion",
+            "snapshot",
+            vmx,
+            snapshot_name,
+        ]
+        task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = task.communicate()
         if err:
-            print colored('Error: %s' % err.strip(), 'yellow')
-            print colored('There is a problem creating a snapshot',
-                          'yellow')
+            print(colored("Error: %s" % err.strip(), "yellow"))
+            print(colored("There is a problem creating a snapshot", "yellow"))
 
     if os.getuid() == 0:
         set_perms(vmpath)
 
     if packer_template:
-        print colored('Generating packer template: %s' % packer_template,
-                      'green')
+        print(colored("Generating packer template: %s" % packer_template, "green"))
         populate_packer_template(vmpath, packer_template, os_rev)
 
     if monitor_vm:
         monitor.set_start(str(vmx), str(job_id))
         if os.getuid() == 0:
             set_perms(monitor.plist)
-        print colored('Adding monitoring for %s' % vmx, 'green')
+        print(colored("Adding monitoring for %s" % vmx, "green"))
     else:
-        print colored('VMware Fusion VM created at %s' % vmpath, 'green')
+        print(colored("VMware Fusion VM created at %s" % vmpath, "green"))
 
     if netboot:
-        if os.path.exists(source_dmg) and 'tmp' in source_dmg:
+        if os.path.exists(source_dmg) and "tmp" in source_dmg:
             shutil.rmtree(os.path.dirname(source_dmg))
 
     if downloaded:
-        print colored('Caching %s' % dmg_name, 'green')
-        print colored('Checksum: %s' % generated_checksum, 'green')
+        print(colored("Caching %s" % dmg_name, "green"))
+        print(colored("Checksum: %s" % generated_checksum, "green"))
         if os.path.exists(os.path.join(cache_dir, os.path.basename(source_dmg))):
             os.remove(os.path.join(cache_dir, os.path.basename(source_dmg)))
         shutil.move(source_dmg, cache_dir)
@@ -1131,24 +1184,23 @@ def main():
             set_perms(cache_dir)
 
     if updated_cache:
-        print colored('Updating %s' % cache_receipt, 'green')
-        with open(cache_receipt, 'w') as f:
-            json.dump(updated_cache, f, indent=4, separators=(',', ': '))
+        print(colored("Updating %s" % cache_receipt, "green"))
+        with open(cache_receipt, "w") as f:
+            json.dump(updated_cache, f, indent=4, separators=(",", ": "))
         if os.getuid() == 0:
             set_perms(cache_receipt)
 
     if logger_file:
-        msg_type = 'vfuse'
-        action = 'build'
-        status = 'success'
-        message = args.template.split('/')[-1].replace('.json', '')
+        msg_type = "vfuse"
+        action = "build"
+        status = "success"
+        message = args.template.split("/")[-1].replace(".json", "")
 
         root_logger = logging.getLogger()
         mylogger = logging.getLogger("vfuse_logger")
         mylogger.setLevel(logging.INFO)
         our_formatter = logging.Formatter(
-            fmt='%(asctime)s; %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S %z'
+            fmt="%(asctime)s; %(message)s", datefmt="%Y-%m-%d %H:%M:%S %z"
         )
         # Set up file handler
         file_handler = logging.FileHandler(logger_file)
@@ -1157,11 +1209,11 @@ def main():
         mylogger.addHandler(file_handler)
         root_logger.disabled = True
         # Message must always match a certain structure
-        msg = 'type: {}; action: {}; status: {}; msg: {};'.format(
+        msg = "type: {}; action: {}; status: {}; msg: {};".format(
             msg_type, action, status, message
         )
         mylogger.info(msg)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
