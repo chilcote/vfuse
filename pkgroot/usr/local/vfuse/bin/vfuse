@@ -355,8 +355,17 @@ def create_vmdk(
                 fusion_path = glob.glob("/Applications/VMware Fusion*.app")[0]
             except IndexError:
                 print(colored("Error: VMware Fusion.app not found", "red"))
+                shutil.rmtree(vmpath)
                 unmount_dmg(disk_id)
                 sys.exit(1)
+
+        cmd = ["/usr/bin/pgrep", "-f", fusion_path + "/Contents/MacOS/VMware Fusion"]
+        task = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = task.communicate()
+        if task.returncode:
+            print(colored("Error: VMware Fusion.app is not running", "red"))
+            shutil.rmtree(vmpath)
+            sys.exit(1)
 
     fusion_tools_path = os.path.join(fusion_path, b"Contents/Library")
 
@@ -388,7 +397,11 @@ def create_vmdk(
             sys.exit(1)
         spinner.stop()
     else:
-        print(colored("Using VMware Fusion path: %s" % fusion_path, "green"))
+        print(
+            colored(
+                "Using VMware Fusion path: %s" % fusion_path.decode("utf-8"), "green"
+            )
+        )
         link = os.path.join(vmpath, os.path.basename(disk_id) + "-link")
 
         print(colored("Converting DMG to VMDK", "green"))
@@ -399,7 +412,7 @@ def create_vmdk(
             # vmware-rawdiskCreator create /dev/disk2 \
             # fullDevice ./disk2-link lsilogic
             cmd = [
-                os.path.join(fusion_tools_path, "vmware-rawdiskCreator"),
+                os.path.join(fusion_tools_path, b"vmware-rawdiskCreator"),
                 "create",
                 disk_id,
                 "fullDevice",
@@ -424,7 +437,7 @@ def create_vmdk(
             # /Applications/VMware\ Fusion.app/Contents/Library/\
             # vmware-vdiskmanager -r ./disk2-link.vmdk -t 0 ./macos-disk.vmdk
             cmd = [
-                os.path.join(fusion_tools_path, "vmware-vdiskmanager"),
+                os.path.join(fusion_tools_path, b"vmware-vdiskmanager"),
                 "-r",
                 link + ".vmdk",
                 "-t",
