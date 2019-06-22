@@ -1162,23 +1162,26 @@ def main():
         status = "success"
         message = args.template.split("/")[-1].replace(".json", "")
 
-        root_logger = logging.getLogger()
-        mylogger = logging.getLogger("vfuse_logger")
-        mylogger.setLevel(logging.INFO)
-        our_formatter = logging.Formatter(
-            fmt="%(asctime)s; %(message)s", datefmt="%Y-%m-%d %H:%M:%S %z"
-        )
-        # Set up file handler
-        file_handler = logging.FileHandler(logger_file)
-        file_handler.setLevel(logging.INFO)
-        file_handler.setFormatter(our_formatter)
-        mylogger.addHandler(file_handler)
-        root_logger.disabled = True
-        # Message must always match a certain structure
-        msg = "type: {}; action: {}; status: {}; msg: {};".format(
-            msg_type, action, status, message
-        )
-        mylogger.info(msg)
+        try:
+            root_logger = logging.getLogger()
+            mylogger = logging.getLogger("vfuse_logger")
+            mylogger.setLevel(logging.INFO)
+            our_formatter = logging.Formatter(
+                fmt="%(asctime)s; %(message)s", datefmt="%Y-%m-%d %H:%M:%S %z"
+            )
+            # Set up file handler
+            file_handler = logging.FileHandler(logger_file)
+            file_handler.setLevel(logging.INFO)
+            file_handler.setFormatter(our_formatter)
+            mylogger.addHandler(file_handler)
+            root_logger.disabled = True
+            # Message must always match a certain structure
+            msg = "type: {}; action: {}; status: {}; msg: {};".format(
+                msg_type, action, status, message
+            )
+            mylogger.info(msg)
+        except IOError:
+            print(colored("Use sudo to write to logger: %s" % logger_file, "yellow"))
 
 
 if __name__ == "__main__":
