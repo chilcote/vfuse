@@ -52,7 +52,7 @@ except ImportError:
     from urllib2 import urlopen, HTTPError
 
 
-__version__ = "2.2.2"
+__version__ = "2.2.3"
 
 
 class Error(Exception):
@@ -562,7 +562,8 @@ def create_vmx(
         f.write('keyboardAndMouseProfile = "macProfile"\n')
         f.write('floppy0.present = "FALSE"\n')
         f.write('msg.autoanswer = "TRUE"\n')
-        f.write('tools.syncTime = "TRUE"')
+        f.write('tools.syncTime = "TRUE"\n')
+        f.write('board-id.reflectHost = "FALSE"')
         if enable3d:
             f.write('\nmks.enable3d = "TRUE"')
         else:
