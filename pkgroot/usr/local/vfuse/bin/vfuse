@@ -52,7 +52,7 @@ except ImportError:
     from urllib2 import urlopen, HTTPError
 
 
-__version__ = "2.2.3"
+__version__ = "2.2.4"
 
 
 class Error(Exception):
@@ -1054,6 +1054,7 @@ def main():
     # 10.12 (darwin16-64) requires virtualHW.version 12 # What?? Apparently so.
     # 10.13 (darwin17-64) requires virtualHW.version 14
     # 10.14 (darwin18-64) requires virtualHW.version 16 # yer killing me, VMware
+    # 10.15 (darwin19-64) requires virtualHW.version 16 # well ok, then
     if os_rev == 12:
         hw_check = os_rev
     elif os_rev == 14:
@@ -1072,8 +1073,8 @@ def main():
 
     # Temporarily drops the guest_os down by one
     # Uncomment these lines during macOS beta season
-    if os_rev >= 15:
-        os_rev = os_rev - 1
+    # if os_rev >= 15:
+    #     os_rev = os_rev - 1
     guest_os = "darwin%d-64" % (os_rev + 4)
 
     if volume_kind == "apfs":
