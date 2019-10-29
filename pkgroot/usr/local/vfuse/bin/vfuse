@@ -325,6 +325,18 @@ def unmount_dmg(pathname):
         if err:
             print(colored("Could not detach:\t%s" % pathname, "yellow"))
 
+def unmount_vols(disk_id):
+    """Unmount all volumes at the disk_id"""
+    print(colored("Unmounting %s" % disk_id, "green"))
+    task = subprocess.Popen(
+        ["/usr/sbin/diskutil", "unmountDisk", disk_id],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    out, err = task.communicate()
+    if err:
+        print(colored("Could not unmount:\t%s" % disk_id, "yellow"))
+
 
 def create_vmdk(
     output_dir,
@@ -1078,7 +1090,7 @@ def main():
     guest_os = "darwin%d-64" % (os_rev + 4)
 
     if volume_kind == "apfs":
-        unmount_dmg(mount_point)
+        unmount_vols(disk_id)
 
     vmpath, fusion_tools_path = create_vmdk(
         output_dir,
