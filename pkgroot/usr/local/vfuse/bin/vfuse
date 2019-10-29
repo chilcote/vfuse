@@ -52,7 +52,7 @@ except ImportError:
     from urllib2 import urlopen, HTTPError
 
 
-__version__ = "2.2.4"
+__version__ = "2.2.5"
 
 
 class Error(Exception):
