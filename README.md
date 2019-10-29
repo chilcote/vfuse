@@ -1,8 +1,6 @@
 vfuse
 ====
 
-> Note: As of version 11.5, Fusion alone is no longer sufficient to build a VMDK. You need to also install the free `qemu-img`. See the [wiki for more details](https://github.com/chilcote/vfuse/wiki/QEMU).
-
 This script takes a never-booted DMG and converts it to a VMware Fusion VM.
 
 The germ of this idea came about, as all good ideas, and germs, do: while drinking beer. Specifically, I was tossing back drinks and tossing around ideas with [Gilbert Wilson](https://www.linkedin.com/in/wilsongilbert/), and he mentioned that he uses the VMware CLI tools to convert DMGs to VMDKs based on a [blog post](http://hazenet.dk/2013/07/17/creating-a-never-booted-os-x-template-in-vsphere-5-1/6/) he'd read.  Intrigued, I asked Gil to email me the specifics.  After seeing how potentially cool this was, I wrapped it up in this here terribly illegible, queasingly unpythonic script.
