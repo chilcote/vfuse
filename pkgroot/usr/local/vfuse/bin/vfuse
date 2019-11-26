@@ -747,6 +747,9 @@ def main():
     parser.add_argument(
         "-e", "--esx", help="Create pre-allocated ESX-type VMDK", action="store_true"
     )
+    parser.add_argument(
+        "--disk_type", help="Set the VMDK options", type=int
+    )
     parser.add_argument("-p", "--packer", help="Populate a packer template")
     parser.add_argument("-d", help="Path to CD/DVD ISO path ", default=None)
     parser.add_argument("--hw-model", help="Custom hardware model", default=None)
@@ -926,6 +929,9 @@ def main():
 
     if args.esx:
         disk_type = 4
+
+    if args.disk_type:
+        disk_type = args.disk_type
 
     if args.packer:
         packer_template = args.packer
