@@ -5,11 +5,19 @@ This script takes a never-booted DMG and converts it to a VMware Fusion VM.
 
 The germ of this idea came about, as all good ideas, and germs, do: while drinking beer. Specifically, I was tossing back drinks and tossing around ideas with [Gilbert Wilson](https://www.linkedin.com/in/wilsongilbert/), and he mentioned that he uses the VMware CLI tools to convert DMGs to VMDKs based on a [blog post](http://hazenet.dk/2013/07/17/creating-a-never-booted-os-x-template-in-vsphere-5-1/6/) he'd read.  Intrigued, I asked Gil to email me the specifics.  After seeing how potentially cool this was, I wrapped it up in this here terribly illegible, queasingly unpythonic script.
 
+> Note: Version 3.0 requires python3. If you wish to continue using vfuse with Apple's system python2, you should use the vfuse 2.2.6 release. However, at some point in the not-too-distant future, Apple is going to remove python completely from macOS, and you'll need to roll your own python3 to be able to use vfuse.
+
+Options for installing python3:
+1. Install the pkg downloaded directly from [python.org](https://www.python.org/downloads).
+2. Install Apple's CL Tools (either by downloading the pkg from Apple's [developer site](https://developer.apple.com/download/more), or by invoking the shim at `/usr/bin/python3`).
+3. Build your own copy of python (E.g. Greg Neagle's [relocatable python](https://github.com/gregneagle/relocatable-python) tools). You'll need to ensure that this custom python is the default python in your `$PATH`.
+
 Requirements
 ------------
 
-+ VMware Fusion 11.x Professional or above
-+ OS X 10.14+
++ VMware Fusion 11.5.1 Professional or above
++ OS X 10.15+
++ Python 3+
 + A never-booted image created with [AutoDMG](https://github.com/magervalp/autodmg).
 + (optional) [Packer](https://packer.io) 1.1.1 (or above) for building a vagrant box.
 + (optional) [qemu-img](https://en.wikibooks.org/wiki/QEMU/Installing_QEMU)
