@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 """
 This script takes a never-booted DMG and converts it to a VMware Fusion VM.
 """
@@ -19,14 +19,13 @@ This script takes a never-booted DMG and converts it to a VMware Fusion VM.
 #  under the License.
 ##############################################################################
 
-from __future__ import print_function
-
 import argparse
 import glob
 import hashlib
 import json
 import logging
 import os
+import plistlib
 import shutil
 import string
 import subprocess
@@ -36,14 +35,7 @@ import threading
 import time
 from collections import OrderedDict
 from random import sample
-
-from CoreFoundation import CFPreferencesCopyAppValue
-from SystemConfiguration import SCDynamicStoreCopyConsoleUser
-
-try:
-    from plistlib import load as readPlist, loads as readPlistFromString
-except ImportError:
-    from plistlib import readPlist, readPlistFromString
+from pwd import getpwuid
 
 try:
     from urllib.request import urlopen
@@ -272,7 +264,7 @@ def mount_dmg(dmg, disk_id=False):
                 "-plist",
             ]
         )
-        d = readPlistFromString(output)
+        d = plistlib.loads(output)
         ignored_vols = ("Preboot", "Recovery", "VM", "Data")
         for i in d["system-entities"]:
             if i.get("mount-point", None):
@@ -304,7 +296,7 @@ def get_osvers(mount_point):
     )
     try:
         with open(sysvers_plist, "rb") as f:
-            d = readPlist(f)
+            d = plistlib.load(f)
         return d["ProductVersion"]
     except IOError as err:
         print(colored(str(err), "red"))
@@ -324,6 +316,7 @@ def unmount_dmg(pathname):
         out, err = task.communicate()
         if err:
             print(colored("Could not detach:\t%s" % pathname, "yellow"))
+
 
 def unmount_vols(disk_id):
     """Unmount all volumes at the disk_id"""
@@ -501,9 +494,9 @@ def create_vmdk(
 
 def set_perms(path):
     """Sets the permissions of given path to local user"""
-    uid = SCDynamicStoreCopyConsoleUser(None, None, None)[1]
+    uid = getpwuid(os.stat("/dev/console").st_uid).pw_uid
     os.chown(path, int(uid), 20)
-    for root, dirs, files in os.walk(path):
+    for _, _, files in os.walk(path):
         for f in files:
             os.chown(os.path.join(path, f), int(uid), 20)
 
@@ -832,10 +825,9 @@ def main():
     recovery = False
     snapshot = False
     snapshot_name = "baseline"
-    template_dir = CFPreferencesCopyAppValue("template_dir", "com.github.vfuse")
-    if not template_dir:
-        template_dir = "/Library/CPE/bin/vfuse"
-
+    with open("config.json") as f:
+        config = json.load(f)
+        template_dir = config.get("template_dir", "/Library/CPE/bin/vfuse")
     downloaded = False
     serial_format = False
     dmg_name = ""
@@ -922,7 +914,7 @@ def main():
         mem_size = args.mem_size
 
     if args.serial == "random":
-        s = string.lowercase + string.digits
+        s = string.ascii_lowercase + string.digits
         serial_number = "VM" + "".join(sample(s, 10))
     else:
         serial_number = args.serial
@@ -1036,7 +1028,7 @@ def main():
         if d.get("serial_number"):
             serial_number = d["serial_number"]
             if serial_number == "random":
-                s = string.lowercase + string.digits
+                s = string.ascii_lowercase + string.digits
                 serial_number = "VM" + "".join(sample(s, 10))
         if d.get("shared_folder"):
             shared_folder = os.path.expanduser(d["shared_folder"])
@@ -1132,7 +1124,7 @@ def main():
     if snapshot:
         print(colored('Creating a "%s" snapshot' % snapshot_name, "green"))
         cmd = [
-            os.path.join(fusion_tools_path, "vmrun"),
+            os.path.join(fusion_tools_path, b"vmrun"),
             "-T",
             "fusion",
             "snapshot",
@@ -1204,3 +1196,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
