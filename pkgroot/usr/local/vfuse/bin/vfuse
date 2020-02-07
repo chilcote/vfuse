@@ -27,6 +27,7 @@ import logging
 import os
 import plistlib
 import shutil
+import ssl
 import string
 import subprocess
 import sys
@@ -34,14 +35,10 @@ import tempfile
 import threading
 import time
 from collections import OrderedDict
-from random import sample
 from pwd import getpwuid
-
-try:
-    from urllib.request import urlopen
-    from urllib.error import HTTPError
-except ImportError:
-    from urllib2 import urlopen, HTTPError
+from random import sample
+from urllib.error import HTTPError
+from urllib.request import urlretrieve
 
 
 __version__ = "3.0.0"
@@ -213,10 +210,9 @@ def get_source_dmg(
         spinner = Spinner()
         spinner.start()
         try:
-            req = urlopen(url)
-            source_dmg = os.path.join(tempfile.mkdtemp(), dmg)
-            with open(source_dmg, "wb") as f:
-                shutil.copyfileobj(req, f)
+            # allow downloading from apache server with self-signed cert
+            ssl._create_default_https_context = ssl._create_unverified_context
+            source_dmg, _ = urlretrieve(url, os.path.join(tempfile.mkdtemp(), dmg))
         except HTTPError as e:
             print(colored("Download of %s failed with error %s" % (url, e), "red"))
             spinner.stop()
@@ -740,9 +736,7 @@ def main():
     parser.add_argument(
         "-e", "--esx", help="Create pre-allocated ESX-type VMDK", action="store_true"
     )
-    parser.add_argument(
-        "--disk_type", help="Set the VMDK options", type=int
-    )
+    parser.add_argument("--disk_type", help="Set the VMDK options", type=int)
     parser.add_argument("-p", "--packer", help="Populate a packer template")
     parser.add_argument("-d", help="Path to CD/DVD ISO path ", default=None)
     parser.add_argument("--hw-model", help="Custom hardware model", default=None)
