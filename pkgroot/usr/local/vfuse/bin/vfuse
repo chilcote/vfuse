@@ -825,7 +825,7 @@ def main():
     guest_os = ""
     logger_file = None
 
-    template_dir = "/Library/CPE/bin/vfuse"
+    template_dir = ""
     config_file = os.path.join(
         os.path.dirname(os.path.realpath(sys.argv[0])), "config.json"
     )
@@ -833,8 +833,7 @@ def main():
         try:
             with open(config_file) as f:
                 config = json.load(f)
-                dir_from_config = config.get("template_dir", template_dir)
-                template_dir = dir_from_config if dir_from_config else template_dir
+                template_dir = config.get("template_dir", template_dir)
         except FileNotFoundError:
             pass
 
