@@ -819,14 +819,19 @@ def main():
     recovery = False
     snapshot = False
     snapshot_name = "baseline"
-    with open("config.json") as f:
-        config = json.load(f)
-        template_dir = config.get("template_dir", "/Library/CPE/bin/vfuse")
     downloaded = False
     serial_format = False
     dmg_name = ""
     guest_os = ""
     logger_file = None
+
+    template_dir = "/Library/CPE/bin/vfuse"
+    try:
+        with open("config.json") as f:
+            config = json.load(f)
+            template_dir = config.get("template_dir", template_dir)
+    except FileNotFoundError:
+        pass
 
     if args.list_templates:
         templates = []
