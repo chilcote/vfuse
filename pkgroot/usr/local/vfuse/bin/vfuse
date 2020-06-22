@@ -743,6 +743,7 @@ def main():
     parser.add_argument("-p", "--packer", help="Populate a packer template")
     parser.add_argument("-d", help="Path to CD/DVD ISO path ", default=None)
     parser.add_argument("--hw-model", help="Custom hardware model", default=None)
+    parser.add_argument("--board-id", help="Custom hardware board id", default=None)
     parser.add_argument(
         "--use-qemu",
         help="Use qemu-img intead of the Fusion CLI tools [/path/to/qemu-img]",

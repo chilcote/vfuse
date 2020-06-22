@@ -26,10 +26,11 @@ Usage
 -----
 
     usage: vfuse [-h] [--version] [-i INPUT] [-o OUTPUT] [-n NAME] [-w HW_VERSION]
-                [-m MEM_SIZE] [-s [SERIAL]] [-t TEMPLATE] [-e] [-p PACKER] [-d D]
-                [--hw-model HW_MODEL] [--use-qemu [USE_QEMU]] [--recovery]
-                [--snapshot] [--snapshot-name SNAPSHOT_NAME] [-c CHECKSUM]
-                [--list-templates] [--list-cache] [--clear-cache]
+                 [-m MEM_SIZE] [-s [SERIAL]] [-t TEMPLATE] [-e]
+                 [--disk_type DISK_TYPE] [-p PACKER] [-d D] [--hw-model HW_MODEL]
+                 [--board-id BOARD_ID] [--use-qemu [USE_QEMU]] [--recovery]
+                 [--snapshot] [--snapshot-name SNAPSHOT_NAME] [-c CHECKSUM]
+                 [--list-templates] [--list-cache] [--clear-cache]
 
     Create VM from source DMG.
 
@@ -54,6 +55,7 @@ Usage
                             Populate a packer template
     -d D                  Path to CD/DVD ISO path
     --hw-model HW_MODEL   Custom hardware model
+    --board-id BOARD_ID   Custom hardware board id
     --use-qemu [USE_QEMU]
                             Use qemu-img intead of the Fusion CLI tools [/path/to
                             /qemu-img]
