@@ -509,6 +509,7 @@ def create_vmx(
     vnc_passwd,
     mac_address,
     hw_model,
+    board_id,
     serial_number,
     serial_format,
     shared_folder,
@@ -582,6 +583,8 @@ def create_vmx(
             f.write('\nhw.model = "%s"' % hw_model)
             f.write('\nhw.model.reflectHost = "FALSE"')
             f.write('\nsmbios.reflectHost = "FALSE"')
+        if board_id:
+            f.write('\nboard-id = "%s"' % board_id)
         if serial_number:
             f.write('\nserialNumber = "%s"' % serial_number)
             f.write('\nserialNumber.reflectHost = "FALSE"')
@@ -740,6 +743,7 @@ def main():
     parser.add_argument("-p", "--packer", help="Populate a packer template")
     parser.add_argument("-d", help="Path to CD/DVD ISO path ", default=None)
     parser.add_argument("--hw-model", help="Custom hardware model", default=None)
+    parser.add_argument("--board-id", help="Custom hardware board id", default=None)
     parser.add_argument(
         "--use-qemu",
         help="Use qemu-img intead of the Fusion CLI tools [/path/to/qemu-img]",
@@ -807,6 +811,7 @@ def main():
     vnc_port = None
     vnc_passwd = None
     hw_model = None
+    board_id = None
     serial_number = None
     shared_folder = None
     packer_template = False
@@ -906,6 +911,9 @@ def main():
 
     if args.hw_model:
         hw_model = args.hw_model
+
+    if args.board_id:
+        board_id = args.board_id
 
     if args.d:
         dvdiso = args.d
@@ -1028,6 +1036,8 @@ def main():
             vnc_passwd = d["vnc_passwd"]
         if d.get("hw_model"):
             hw_model = d["hw_model"]
+        if d.get("board_id"):
+            board_id = d["board_id"]
         if d.get("serial_number"):
             serial_number = d["serial_number"]
             if serial_number == "random":
@@ -1116,6 +1126,7 @@ def main():
         vnc_passwd,
         mac_address,
         hw_model,
+        board_id,
         serial_number,
         serial_format,
         shared_folder,
@@ -1199,4 +1210,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
