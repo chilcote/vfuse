@@ -5,6 +5,8 @@ This script takes a never-booted DMG and converts it to a VMware Fusion VM.
 
 The germ of this idea came about, as all good ideas, and germs, do: while drinking beer. Specifically, I was tossing back drinks and tossing around ideas with [Gilbert Wilson](https://www.linkedin.com/in/wilsongilbert/), and he mentioned that he uses the VMware CLI tools to convert DMGs to VMDKs based on a [blog post](http://hazenet.dk/2013/07/17/creating-a-never-booted-os-x-template-in-vsphere-5-1/6/) he'd read.  Intrigued, I asked Gil to email me the specifics.  After seeing how potentially cool this was, I wrapped it up in this here terribly illegible, queasingly unpythonic script.
 
+> Note: Big Sur guests are not supported. Because Apple has changed the anatomy of the installer application, AutoDMG [most likely won't be able to](https://github.com/MagerValp/AutoDMG/issues/255) create a never-booted DMG for Big Sur. And since that is a dependency for vfuse, we are currently out of luck.
+
 > Note: Version 3.0 requires python3. If you wish to continue using vfuse with Apple's system python2, you should use the vfuse 2.2.6 release. However, at some point in the not-too-distant future, Apple is going to remove python completely from macOS, and you'll need to roll your own python3 to be able to use vfuse.
 
 Options for installing python3:
