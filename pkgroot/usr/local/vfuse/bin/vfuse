@@ -41,7 +41,7 @@ from urllib.error import HTTPError
 from urllib.request import urlretrieve
 
 
-__version__ = "3.0.0"
+__version__ = "3.0.1"
 
 
 class Error(Exception):
@@ -217,8 +217,11 @@ def get_source_dmg(
             print(colored("Download of %s failed with error %s" % (url, e), "red"))
             spinner.stop()
             sys.exit(1)
-        except IOError:
-            print(colored("Could not write %s to disk" % source_dmg, "red"))
+        except IOError as e:
+            source_dmg = source_dmg if source_dmg else "remote DMG"
+            print(colored("Could not write %s to disk. Failed with error: %s" % (source_dmg, e), "red"))
+            if "urlopen error" in str(e):
+                print(colored("Make sure remote host is accessible: %s" % url, "red"))
             spinner.stop()
             sys.exit(1)
         spinner.stop()
