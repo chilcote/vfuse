@@ -264,10 +264,10 @@ def mount_dmg(dmg, disk_id=False):
             ]
         )
         d = plistlib.loads(output)
-        ignored_vols = ("Preboot", "Recovery", "VM", "Data")
+        ignored_vols = ("preboot", "recovery", "vm", "data")
         for i in d["system-entities"]:
             if i.get("mount-point", None):
-                if not any(x in i["mount-point"].split("/")[-1] for x in ignored_vols):
+                if not any(x in i["mount-point"].split("/")[-1].lower() for x in ignored_vols):
                     mount_point = i["mount-point"]
                     volume_kind = i["volume-kind"]
                     mountpoint_dev_entry = i["dev-entry"]
