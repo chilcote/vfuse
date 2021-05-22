@@ -1,5 +1,9 @@
-vfuse
+vfuse (Deprecated)
 ====
+
+> Note: Big Sur guests are not supported due to the changes Apple made to the system volume. Additionally, because Apple has changed the anatomy of the installer application, AutoDMG [cannot](https://github.com/MagerValp/AutoDMG/issues/254) create a never-booted DMG for Big Sur or above. And finally, Apple Silicon doesn't even support virtualizing macOS. As a result, I won't be updating this script any longer. My heartfelt thanks to everyone who contributed code or issues. This community is amazing.
+
+---
 
 This script takes a never-booted DMG and converts it to a VMware Fusion VM.
 
